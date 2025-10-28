@@ -7,7 +7,7 @@ const register = async (req, res) => {
   const { name, email, password, role, angkatan, fakultas } = req.body;
 
   try {
-    // 1. Cek email sudah ada?
+    // Cek jika email sudah ada
     const userExists = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
@@ -17,11 +17,11 @@ const register = async (req, res) => {
       return res.status(400).json({ error: 'Email sudah terdaftar' });
     }
 
-    // 2. Hash password
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. Simpan user baru
+    // Insert user baru
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role, angkatan, fakultas) 
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, name, email, role`,
@@ -30,7 +30,20 @@ const register = async (req, res) => {
 
     const user = result.rows[0];
 
-    // 4. Buat JWT token
+    // Auto-create profile kosong berdasarkan role
+    if (role === 'student') {
+      await pool.query(
+        `INSERT INTO student_profiles (user_id) VALUES ($1)`,
+        [user.user_id]
+      );
+    } else if (role === 'alumni') {
+      await pool.query(
+        `INSERT INTO alumni_profiles (user_id) VALUES ($1)`,
+        [user.user_id]
+      );
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
       { userId: user.user_id, email: user.email, role: user.role },
       process.env.JWT_SECRET,

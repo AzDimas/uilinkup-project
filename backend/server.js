@@ -11,6 +11,9 @@ app.use(express.json());
 // 🔐 AUTH ROUTES 
 app.use('/api/auth', require('./routes/auth'));
 
+// 🔐 USER ROUTES - butuh JWT token
+app.use('/api/users', require('./routes/users'));
+
 // ✅ TEST ROUTE - Cek server jalan
 app.get('/api/test', (req, res) => {
   res.json({ 
