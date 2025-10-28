@@ -21,21 +21,25 @@ const getUserProfile = async (req, res) => {
         ap.industry,
         ap.location,
         ap.years_of_experience,
-        ap.linkedin_url,
-        ap.cv_link,
-        ap.portfolio_link,
+        ap.linkedin_url as alumni_linkedin_url,
+        ap.cv_link as alumni_cv_link,
+        ap.portfolio_link as alumni_portfolio_link,
         -- Student fields
         sp.nim,
         sp.current_semester,
         sp.ipk,
         sp.interest_fields as student_interests,
         sp.bio as student_bio,
+        sp.linkedin_url as student_linkedin_url,
         sp.cv_link as student_cv_link,
         sp.portfolio_link as student_portfolio_link,
-        sp.linkedin_url as student_linkedin_url
+        -- Admin fields
+        adp.department as admin_department,
+        adp.permissions as admin_permissions
       FROM users u
       LEFT JOIN alumni_profiles ap ON u.user_id = ap.user_id
       LEFT JOIN student_profiles sp ON u.user_id = sp.user_id
+      LEFT JOIN admin_profiles adp ON u.user_id = adp.user_id
       WHERE u.user_id = $1
     `, [userId]);
 
@@ -62,18 +66,21 @@ const getUserProfile = async (req, res) => {
       profile.industry = userData.industry;
       profile.location = userData.location;
       profile.years_of_experience = userData.years_of_experience;
-      profile.linkedin_url = userData.linkedin_url;
-      profile.cv_link = userData.cv_link;
-      profile.portfolio_link = userData.portfolio_link;
+      profile.linkedin_url = userData.alumni_linkedin_url;
+      profile.cv_link = userData.alumni_cv_link;
+      profile.portfolio_link = userData.alumni_portfolio_link;
     } else if (userData.role === 'student') {
       profile.bio = userData.student_bio;
       profile.nim = userData.nim;
       profile.current_semester = userData.current_semester;
       profile.ipk = userData.ipk;
       profile.interests = userData.student_interests;
+      profile.linkedin_url = userData.student_linkedin_url;
       profile.cv_link = userData.student_cv_link;
       profile.portfolio_link = userData.student_portfolio_link;
-      profile.linkedin_url = userData.student_linkedin_url;
+    } else if (userData.role === 'admin') {
+      profile.department = userData.admin_department;
+      profile.permissions = userData.admin_permissions;
     }
 
     res.json({
@@ -108,7 +115,7 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-// UPDATE USER PROFILE (SUPPORT PARTIAL UPDATE)
+// UPDATE USER PROFILE (SUPPORT PARTIAL UPDATE - INCLUDING ADMIN)
 const updateUserProfile = async (req, res) => {
   const client = await pool.connect();
   
@@ -156,6 +163,7 @@ const updateUserProfile = async (req, res) => {
       const alumniValues = [];
       let alumniParamCount = 0;
 
+      // ... (alumni fields sama seperti sebelumnya)
       if (updateData.bio !== undefined) {
         alumniFields.push(`bio = $${++alumniParamCount}`);
         alumniValues.push(updateData.bio);
@@ -209,6 +217,7 @@ const updateUserProfile = async (req, res) => {
       const studentValues = [];
       let studentParamCount = 0;
 
+      // ... (student fields sama seperti sebelumnya)
       if (updateData.bio !== undefined) {
         studentFields.push(`bio = $${++studentParamCount}`);
         studentValues.push(updateData.bio);
@@ -247,6 +256,27 @@ const updateUserProfile = async (req, res) => {
         await client.query(
           `UPDATE student_profiles SET ${studentFields.join(', ')} WHERE user_id = $${studentParamCount + 1}`,
           studentValues
+        );
+      }
+    } else if (role === 'admin') {
+      const adminFields = [];
+      const adminValues = [];
+      let adminParamCount = 0;
+
+      if (updateData.department !== undefined) {
+        adminFields.push(`department = $${++adminParamCount}`);
+        adminValues.push(updateData.department);
+      }
+      if (updateData.permissions !== undefined) {
+        adminFields.push(`permissions = $${++adminParamCount}`);
+        adminValues.push(updateData.permissions);
+      }
+
+      if (adminFields.length > 0) {
+        adminValues.push(userId);
+        await client.query(
+          `UPDATE admin_profiles SET ${adminFields.join(', ')} WHERE user_id = $${adminParamCount + 1}`,
+          adminValues
         );
       }
     }
