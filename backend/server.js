@@ -8,6 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 🔐 AUTH ROUTES 
+app.use('/api/auth', require('./routes/auth'));
+
 // ✅ TEST ROUTE - Cek server jalan
 app.get('/api/test', (req, res) => {
   res.json({ 
@@ -56,6 +59,7 @@ app.get('/', (req, res) => {
     endpoints: {
       test: '/api/test',
       users: '/api/users',
+      auth: '/api/auth',
       docs: 'Coming soon...'
     }
   });
@@ -67,4 +71,5 @@ app.listen(PORT, () => {
   console.log(`🎉 Server UILinkUp berjalan di http://localhost:${PORT}`);
   console.log(`📊 Test endpoint: http://localhost:${PORT}/api/test`);
   console.log(`👥 Users endpoint: http://localhost:${PORT}/api/users`);
+  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
 });
