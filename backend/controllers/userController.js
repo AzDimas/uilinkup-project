@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 
-// GET USER PROFILE
+// GET USER PROFILE - UPDATE BAGIAN INI
 const getUserProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -13,6 +13,7 @@ const getUserProfile = async (req, res) => {
         u.role, 
         u.angkatan, 
         u.fakultas,
+        u.created_at,  -- ✅ TAMBAHKAN INI
         -- Alumni fields
         ap.bio as alumni_bio,
         ap.skills as alumni_skills,
@@ -55,7 +56,8 @@ const getUserProfile = async (req, res) => {
       email: userData.email,
       role: userData.role,
       angkatan: userData.angkatan,
-      fakultas: userData.fakultas
+      fakultas: userData.fakultas,
+      createdAt: userData.created_at  // ✅ TAMBAHKAN INI
     };
 
     if (userData.role === 'alumni') {
@@ -94,11 +96,11 @@ const getUserProfile = async (req, res) => {
   }
 };
 
-// GET ALL USERS
+// GET ALL USERS - UPDATE BAGIAN INI
 const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT user_id, name, email, role, angkatan, fakultas
+      SELECT user_id, name, email, role, angkatan, fakultas, created_at
       FROM users 
       ORDER BY name
       LIMIT 20
@@ -106,7 +108,15 @@ const getAllUsers = async (req, res) => {
 
     res.json({
       success: true,
-      users: result.rows
+      users: result.rows.map(user => ({
+        id: user.user_id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        angkatan: user.angkatan,
+        fakultas: user.fakultas,
+        createdAt: user.created_at  // ✅ TAMBAHKAN INI
+      }))
     });
 
   } catch (err) {
@@ -163,7 +173,6 @@ const updateUserProfile = async (req, res) => {
       const alumniValues = [];
       let alumniParamCount = 0;
 
-      // ... (alumni fields sama seperti sebelumnya)
       if (updateData.bio !== undefined) {
         alumniFields.push(`bio = $${++alumniParamCount}`);
         alumniValues.push(updateData.bio);
@@ -217,7 +226,6 @@ const updateUserProfile = async (req, res) => {
       const studentValues = [];
       let studentParamCount = 0;
 
-      // ... (student fields sama seperti sebelumnya)
       if (updateData.bio !== undefined) {
         studentFields.push(`bio = $${++studentParamCount}`);
         studentValues.push(updateData.bio);

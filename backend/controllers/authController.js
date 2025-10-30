@@ -24,7 +24,8 @@ const register = async (req, res) => {
     // Insert user baru
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role, angkatan, fakultas) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, name, email, role, angkatan, fakultas`,
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING user_id, name, email, role, angkatan, fakultas, created_at`,
       [name, email, hashedPassword, role, angkatan, fakultas]
     );
 
@@ -43,14 +44,15 @@ const register = async (req, res) => {
       );
     }
 
-    // Return user data
+    // Return user data - TAMBAHKAN created_at
     const userResponse = {
       id: user.user_id,
       name: user.name,
       email: user.email,
       role: user.role,
       angkatan: user.angkatan,
-      fakultas: user.fakultas
+      fakultas: user.fakultas,
+      createdAt: user.created_at  // ✅ TAMBAH INI
     };
 
     // Generate JWT token
@@ -71,6 +73,7 @@ const register = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
 
 // LOGIN USER
 const login = async (req, res) => {
@@ -94,14 +97,15 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Email atau password salah' });
     }
 
-    // Get full profile data based on role
+    // Get full profile data based on role - TAMBAHKAN created_at
     let fullUserData = {
       id: user.user_id,
       name: user.name,
       email: user.email,
       role: user.role,
       angkatan: user.angkatan,
-      fakultas: user.fakultas
+      fakultas: user.fakultas,
+      createdAt: user.created_at  // ✅ TAMBAH INI
     };
 
     // Get additional profile data based on role
