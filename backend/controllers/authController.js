@@ -2,7 +2,7 @@ const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// REGISTER
+// REGISTER USER
 const register = async (req, res) => {
   const { name, email, password, role, angkatan, fakultas } = req.body;
 
@@ -24,13 +24,13 @@ const register = async (req, res) => {
     // Insert user baru
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role, angkatan, fakultas) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, name, email, role`,
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, name, email, role, angkatan, fakultas`,
       [name, email, hashedPassword, role, angkatan, fakultas]
     );
 
     const user = result.rows[0];
 
-    // Auto-create profile kosong berdasarkan role
+    // Auto-create profile berdasarkan role
     if (role === 'student') {
       await pool.query(
         `INSERT INTO student_profiles (user_id) VALUES ($1)`,
@@ -43,6 +43,16 @@ const register = async (req, res) => {
       );
     }
 
+    // Return user data
+    const userResponse = {
+      id: user.user_id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      angkatan: user.angkatan,
+      fakultas: user.fakultas
+    };
+
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.user_id, email: user.email, role: user.role },
@@ -53,12 +63,7 @@ const register = async (req, res) => {
     res.status(201).json({
       message: 'User berhasil dibuat',
       token,
-      user: {
-        id: user.user_id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: userResponse
     });
 
   } catch (err) {
@@ -67,12 +72,12 @@ const register = async (req, res) => {
   }
 };
 
-// LOGIN
+// LOGIN USER
 const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // 1. Cari user by email
+    // Cari user by email
     const result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
@@ -83,14 +88,54 @@ const login = async (req, res) => {
     }
 
     const user = result.rows[0];
-
-    // 2. Check password
     const isMatch = await bcrypt.compare(password, user.password_hash);
+    
     if (!isMatch) {
       return res.status(400).json({ error: 'Email atau password salah' });
     }
 
-    // 3. Buat JWT token
+    // Get full profile data based on role
+    let fullUserData = {
+      id: user.user_id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      angkatan: user.angkatan,
+      fakultas: user.fakultas
+    };
+
+    // Get additional profile data based on role
+    if (user.role === 'alumni') {
+      const alumniResult = await pool.query(
+        `SELECT bio, skills, current_job, company, industry, location, 
+                years_of_experience, linkedin_url, cv_link, portfolio_link 
+         FROM alumni_profiles WHERE user_id = $1`,
+        [user.user_id]
+      );
+      if (alumniResult.rows.length > 0) {
+        fullUserData = { ...fullUserData, ...alumniResult.rows[0] };
+      }
+    } else if (user.role === 'student') {
+      const studentResult = await pool.query(
+        `SELECT nim, current_semester, ipk, interest_fields as interests, 
+                bio, linkedin_url, cv_link, portfolio_link 
+         FROM student_profiles WHERE user_id = $1`,
+        [user.user_id]
+      );
+      if (studentResult.rows.length > 0) {
+        fullUserData = { ...fullUserData, ...studentResult.rows[0] };
+      }
+    } else if (user.role === 'admin') {
+      const adminResult = await pool.query(
+        `SELECT department, permissions FROM admin_profiles WHERE user_id = $1`,
+        [user.user_id]
+      );
+      if (adminResult.rows.length > 0) {
+        fullUserData = { ...fullUserData, ...adminResult.rows[0] };
+      }
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
       { userId: user.user_id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -100,12 +145,7 @@ const login = async (req, res) => {
     res.json({
       message: 'Login berhasil',
       token,
-      user: {
-        id: user.user_id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: fullUserData
     });
 
   } catch (err) {
