@@ -22,6 +22,7 @@ export const authAPI = {
 
 export const userAPI = {
   getProfile: () => api.get('/users/profile'),
+  getUserById: (userId) => api.get(`/users/${userId}`),
   updateProfile: (data) => api.put('/users/profile', data),
   getAllUsers: () => api.get('/users'),
   deleteProfile: () => api.delete('/users/profile'),

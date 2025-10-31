@@ -345,9 +345,104 @@ const deleteUserProfile = async (req, res) => {
   }
 };
 
+// GET USER BY ID
+const getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    console.log('Fetching user by ID:', userId);
+    
+    const result = await pool.query(`
+      SELECT 
+        u.user_id, 
+        u.name, 
+        u.email, 
+        u.role, 
+        u.angkatan, 
+        u.fakultas,
+        u.created_at,
+        -- Alumni fields
+        ap.bio as alumni_bio,
+        ap.skills as alumni_skills,
+        ap.current_job,
+        ap.company,
+        ap.industry,
+        ap.location,
+        ap.years_of_experience,
+        ap.linkedin_url as alumni_linkedin_url,
+        ap.cv_link as alumni_cv_link,
+        ap.portfolio_link as alumni_portfolio_link,
+        -- Student fields
+        sp.nim,
+        sp.current_semester,
+        sp.ipk,
+        sp.interest_fields as student_interests,
+        sp.bio as student_bio,
+        sp.linkedin_url as student_linkedin_url,
+        sp.cv_link as student_cv_link,
+        sp.portfolio_link as student_portfolio_link
+      FROM users u
+      LEFT JOIN alumni_profiles ap ON u.user_id = ap.user_id
+      LEFT JOIN student_profiles sp ON u.user_id = sp.user_id
+      WHERE u.user_id = $1
+    `, [userId]);
+
+    console.log('Database result:', result.rows[0]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = result.rows[0];
+    
+    let profile = {
+      id: userData.user_id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
+      angkatan: userData.angkatan,
+      fakultas: userData.fakultas,
+      createdAt: userData.created_at
+    };
+
+    if (userData.role === 'alumni') {
+      profile.bio = userData.alumni_bio;
+      profile.skills = userData.alumni_skills;
+      profile.current_job = userData.current_job;
+      profile.company = userData.company;
+      profile.industry = userData.industry;
+      profile.location = userData.location;
+      profile.years_of_experience = userData.years_of_experience;
+      profile.linkedin_url = userData.alumni_linkedin_url;
+      profile.cv_link = userData.alumni_cv_link;
+      profile.portfolio_link = userData.alumni_portfolio_link;
+    } else if (userData.role === 'student') {
+      profile.bio = userData.student_bio;
+      profile.nim = userData.nim;
+      profile.current_semester = userData.current_semester;
+      profile.ipk = userData.ipk;
+      profile.interests = userData.student_interests;
+      profile.linkedin_url = userData.student_linkedin_url;
+      profile.cv_link = userData.student_cv_link;
+      profile.portfolio_link = userData.student_portfolio_link;
+    }
+
+    console.log('Final profile data:', profile);
+
+    res.json({
+      success: true,
+      user: profile
+    });
+
+  } catch (err) {
+    console.error('Get user by ID error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 module.exports = { 
   getUserProfile, 
   getAllUsers, 
   updateUserProfile, 
-  deleteUserProfile 
+  deleteUserProfile,
+  getUserById
 };
