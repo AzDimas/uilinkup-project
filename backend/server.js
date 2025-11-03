@@ -14,6 +14,9 @@ app.use('/api/auth', require('./routes/auth'));
 // 🔐 USER ROUTES - butuh JWT token
 app.use('/api/users', require('./routes/users'));
 
+// 🔗 CONNECTIONS ROUTES - ✅ TAMBAHKAN INI
+app.use('/api/connections', require('./routes/connection'));
+
 // ✅ TEST ROUTE - Cek server jalan
 app.get('/api/test', (req, res) => {
   res.json({ 
@@ -63,6 +66,7 @@ app.get('/', (req, res) => {
       test: '/api/test',
       users: '/api/users',
       auth: '/api/auth',
+      connections: '/api/connections', // ✅ TAMBAHKAN INI
       docs: 'Coming soon...'
     }
   });
@@ -75,4 +79,5 @@ app.listen(PORT, () => {
   console.log(`📊 Test endpoint: http://localhost:${PORT}/api/test`);
   console.log(`👥 Users endpoint: http://localhost:${PORT}/api/users`);
   console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
+  console.log(`🔗 Connections endpoints: http://localhost:${PORT}/api/connections`); // ✅ TAMBAHKAN INI
 });

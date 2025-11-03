@@ -1,12 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext'; // ✅ IMPORT NAMED EXPORTS
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Users from './pages/Users';
 import UserProfile from './pages/UserProfile';
+import ConnectionsPage from './pages/Connections';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -39,7 +40,7 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
+    <AuthProvider> {/* ✅ PAKAI NAMED EXPORT */}
       <Router>
         <div className="App">
           <Routes>
@@ -71,6 +72,11 @@ function App() {
             <Route path="/profile/:userId" element={
               <ProtectedRoute>
                 <UserProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/connections" element={
+              <ProtectedRoute>
+                <ConnectionsPage />
               </ProtectedRoute>
             } />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

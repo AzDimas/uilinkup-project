@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { userAPI } from '../services/api';
+import ConnectionButton from '../components/ConnectionButton';
 
 const UserProfile = () => {
   const { user, logout } = useAuth();
@@ -48,14 +49,6 @@ const UserProfile = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const handleConnect = async () => {
-    try {
-      setConnectionStatus('pending');
-    } catch (error) {
-      console.error('Error sending connection request:', error);
-    }
   };
 
   const getRoleBadgeColor = (role) => {
@@ -140,6 +133,12 @@ const UserProfile = () => {
                 >
                   Users
                 </button>
+                <button 
+                  onClick={() => navigate('/connections')}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Connections
+                </button>
               </nav>
             </div>
             <div className="flex items-center space-x-4">
@@ -205,43 +204,13 @@ const UserProfile = () => {
                 </div>
               </div>
 
+              {/* Connection Button Section - UPDATED */}
               <div className="flex flex-col space-y-3">
-                {connectionStatus === 'not_connected' && (
-                  <button
-                    onClick={handleConnect}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                    </svg>
-                    Connect
-                  </button>
-                )}
-
-                {connectionStatus === 'pending' && (
-                  <button
-                    disabled
-                    className="bg-yellow-500 text-white px-6 py-3 rounded-lg font-semibold opacity-75 cursor-not-allowed flex items-center justify-center"
-                  >
-                    <svg className="h-5 w-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Request Sent
-                  </button>
-                )}
-
-                {connectionStatus === 'connected' && (
-                  <button
-                    disabled
-                    className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold opacity-75 cursor-not-allowed flex items-center justify-center"
-                  >
-                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Connected
-                  </button>
-                )}
-
+                <ConnectionButton 
+                  targetUserId={profile.id} 
+                  onStatusChange={(status) => setConnectionStatus(status)}
+                />
+                
                 <button className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors flex items-center justify-center">
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />

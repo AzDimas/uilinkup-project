@@ -28,4 +28,16 @@ export const userAPI = {
   deleteProfile: () => api.delete('/users/profile'),
 };
 
+export const connectionAPI = {
+  sendConnectionRequest: (userId) => api.post(`/connections/${userId}/send`),
+  checkConnectionStatus: (userId) => api.get(`/connections/status/${userId}`),
+  getMyConnections: () => api.get('/connections/my-connections'),
+  getPendingRequests: () => api.get('/connections/pending-requests'),
+  getSentRequests: () => api.get('/connections/sent-requests'),
+  getConnectionStats: () => api.get('/connections/stats'),
+  acceptConnection: (connectionId) => api.put(`/connections/${connectionId}/accept`),
+  rejectConnection: (connectionId) => api.put(`/connections/${connectionId}/reject`),
+  removeConnection: (connectionId) => api.delete(`/connections/${connectionId}/remove`)
+};
+
 export default api;

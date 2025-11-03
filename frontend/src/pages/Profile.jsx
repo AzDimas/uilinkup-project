@@ -109,6 +109,12 @@ const Profile = () => {
                 >
                   Users
                 </button>
+                <button 
+                  onClick={() => navigate('/connections')}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Connections
+                </button>
               </nav>
             </div>
             <div className="flex items-center space-x-4">
