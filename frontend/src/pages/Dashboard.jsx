@@ -44,6 +44,12 @@ const Dashboard = () => {
                 >
                   Connections
                 </button>
+                <button  
+                  onClick={() => navigate('/messages')} 
+                  className="text-gray-600 hover:text-gray-800" 
+                > 
+                  Messages 
+                </button> 
               </nav>
             </div>
             <div className="flex items-center space-x-4">

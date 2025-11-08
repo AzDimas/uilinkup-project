@@ -7,7 +7,8 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Users from './pages/Users';
 import UserProfile from './pages/UserProfile';
-import ConnectionsPage from './pages/Connections';
+import Connections from './pages/Connections';
+import Messages from './pages/Messages';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -76,7 +77,12 @@ function App() {
             } />
             <Route path="/connections" element={
               <ProtectedRoute>
-                <ConnectionsPage />
+                <Connections />
+              </ProtectedRoute>
+            } />
+            <Route path="/messages" element={
+              <ProtectedRoute>
+                <Messages />
               </ProtectedRoute>
             } />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -40,4 +40,11 @@ export const connectionAPI = {
   removeConnection: (connectionId) => api.delete(`/connections/${connectionId}/remove`)
 };
 
+export const messageAPI = {
+  getThreads: () => api.get('/messages/threads'),
+  getConversation: (userId, params={}) => api.get(`/messages/${userId}`, { params }),
+  sendMessage: (userId, payload) => api.post(`/messages/${userId}`, payload),
+  markAsRead: (userId) => api.put(`/messages/${userId}/read`)
+};
+
 export default api;
