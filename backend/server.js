@@ -17,6 +17,7 @@ app.use('/api/auth', require('./routes/auth'));             // Auth (login/regis
 app.use('/api/users', require('./routes/users'));           // Users (profil, list, dll)
 app.use('/api/connections', require('./routes/connection')); // Connections (kirim/terima/daftar)
 app.use('/api/messages', require('./routes/messages'));     // ✅ Messages (baru ditambahkan)
+app.use('/api/jobs', require('./routes/jobs'));             // Jobs (lowongan kerja)
 
 // ---------- Healthcheck ----------
 app.get('/api/test', (req, res) => {

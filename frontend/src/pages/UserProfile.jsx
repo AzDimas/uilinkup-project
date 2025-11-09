@@ -100,60 +100,6 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => navigate('/users')}
-                className="flex items-center text-gray-600 hover:text-gray-800"
-              >
-                <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                Kembali
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">UILinkUp</h1>
-              <nav className="flex space-x-4">
-                <button 
-                  onClick={() => navigate('/dashboard')}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Dashboard
-                </button>
-                <button 
-                  onClick={() => navigate('/profile')}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Profile
-                </button>
-                <button 
-                  onClick={() => navigate('/users')}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Users
-                </button>
-                <button 
-                  onClick={() => navigate('/connections')}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Connections
-                </button>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">Halo, {user?.name}</span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-6 py-8 border-b bg-gradient-to-r from-blue-50 to-purple-50">
