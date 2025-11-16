@@ -73,4 +73,23 @@ export const applicationsAPI = {
     api.patch(`/jobs/${jobId}/applications/${applicationId}`, { status, note }),
 };
 
+// EVENTS
+export const eventsAPI = {
+  list: (params = {}) => api.get('/events', { params }),
+  detail: (eventId) => api.get(`/events/${eventId}`),
+
+  create: (payload) => api.post('/events', payload),
+  update: (eventId, payload) => api.put(`/events/${eventId}`, payload),
+  cancel: (eventId) => api.delete(`/events/${eventId}`),
+
+  register: (eventId) => api.post(`/events/${eventId}/register`),
+  unregister: (eventId) => api.delete(`/events/${eventId}/register`),
+
+  myHosting: () => api.get('/events/me/hosting/list'),
+  myRegistered: () => api.get('/events/me/registered/list'),
+
+  registrants: (eventId) => api.get(`/events/${eventId}/registrants`), // organizer only
+};
+
+
 export default api;

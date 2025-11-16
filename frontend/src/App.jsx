@@ -18,7 +18,13 @@ import JobDetail from './pages/JobDetail';
 import PostJob from './pages/PostJob';
 import MyJobs from './pages/MyJobs';
 import MyApplications from './pages/MyApplications';
-import JobApplicants from './pages/JobApplicants'; 
+import JobApplicants from './pages/JobApplicants';
+
+import EventsList from './pages/EventsList';
+import EventDetail from './pages/EventDetail';
+import PostEvent from './pages/PostEvent';
+import MyEvents from './pages/MyEvents';
+import EventRegistrants from './pages/EventRegistrants';
 
 import './App.css';
 
@@ -58,21 +64,53 @@ function Nav() {
 
   return (
     <nav className="w-full bg-white border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm">
-          <Link to="/dashboard" className="text-xl font-extrabold tracking-tight mr-4">
+      <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
+
+        {/* LEFT */}
+        <div className="flex items-center gap-6 text-sm">
+          <Link to="/dashboard" className="text-xl font-extrabold tracking-tight">
             UILinkUp
           </Link>
+
           <Link to="/dashboard" className="hover:text-blue-600">Dashboard</Link>
           <Link to="/users" className="hover:text-blue-600">Users</Link>
           <Link to="/connections" className="hover:text-blue-600">Connections</Link>
           <Link to="/messages" className="hover:text-blue-600">Messages</Link>
-          <span className="mx-2 text-gray-300">|</span>
-          <Link to="/jobs" className="hover:text-blue-600 font-medium">Jobs</Link>
-          <Link to="/jobs/new" className="hover:text-blue-600">Post Job</Link>
-          <Link to="/jobs/me/posted" className="hover:text-blue-600">My Posted Jobs</Link>
-          <Link to="/jobs/me/applied" className="hover:text-blue-600">My Applications</Link>
+
+          {/* JOBS DROPDOWN */}
+          <div className="relative group">
+            <span className="cursor-pointer hover:text-blue-600 font-medium">
+              Jobs ▾
+            </span>
+
+            <div className="absolute left-0 mt-2 w-40 bg-white border rounded shadow-lg 
+                            opacity-0 invisible group-hover:opacity-100 group-hover:visible 
+                            transition-all duration-150">
+              <Link to="/jobs" className="block px-3 py-2 hover:bg-gray-50">Jobs List</Link>
+              <Link to="/jobs/new" className="block px-3 py-2 hover:bg-gray-50">Post Job</Link>
+              <Link to="/jobs/me/posted" className="block px-3 py-2 hover:bg-gray-50">My Posted Jobs</Link>
+              <Link to="/jobs/me/applied" className="block px-3 py-2 hover:bg-gray-50">My Applications</Link>
+            </div>
+          </div>
+
+          {/* EVENTS DROPDOWN */}
+          <div className="relative group">
+            <span className="cursor-pointer hover:text-blue-600 font-medium">
+              Events ▾
+            </span>
+
+            <div className="absolute left-0 mt-2 w-40 bg-white border rounded shadow-lg 
+                            opacity-0 invisible group-hover:opacity-100 group-hover:visible 
+                            transition-all duration-150">
+              <Link to="/events" className="block px-3 py-2 hover:bg-gray-50">Events List</Link>
+              <Link to="/events/new" className="block px-3 py-2 hover:bg-gray-50">Create Event</Link>
+              <Link to="/events/me" className="block px-3 py-2 hover:bg-gray-50">My Events</Link>
+            </div>
+          </div>
+
         </div>
+
+        {/* RIGHT */}
         <div className="flex items-center gap-3">
           <Link to="/profile" className="text-sm text-gray-700 hover:text-blue-600">
             {user?.name || 'Profile'}
@@ -217,6 +255,52 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyApplications />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Events */}
+          <Route
+            path="/events"
+            element={
+              <ProtectedRoute>
+                <EventsList />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/events/new"
+            element={
+              <ProtectedRoute>
+                <PostEvent />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/events/:eventId"
+            element={
+              <ProtectedRoute>
+                <EventDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/events/me"
+            element={
+              <ProtectedRoute>
+                <MyEvents />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/events/:eventId/registrants"
+            element={
+              <ProtectedRoute>
+                <EventRegistrants />
               </ProtectedRoute>
             }
           />
