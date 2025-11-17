@@ -1,6 +1,13 @@
 // src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Link,
+  useNavigate,
+} from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import Login from './components/auth/Login';
@@ -25,6 +32,13 @@ import EventDetail from './pages/EventDetail';
 import PostEvent from './pages/PostEvent';
 import MyEvents from './pages/MyEvents';
 import EventRegistrants from './pages/EventRegistrants';
+
+// === GROUP / FORUM PAGES (pastikan file-file ini ada) ===
+import Groups from './pages/Groups'; // list groups + mungkin quick actions
+import GroupDetail from './pages/GroupDetail'; // detail 1 group + posts overview
+import GroupFeed from './pages/GroupFeed'; // global forum feed
+import GroupPostDetail from './pages/GroupPostDetail'; // detail satu post & replies
+import GroupMembers from './pages/GroupMembers';
 
 import './App.css';
 
@@ -65,17 +79,27 @@ function Nav() {
   return (
     <nav className="w-full bg-white border-b">
       <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
-
         {/* LEFT */}
         <div className="flex items-center gap-6 text-sm">
-          <Link to="/dashboard" className="text-xl font-extrabold tracking-tight">
+          <Link
+            to="/dashboard"
+            className="text-xl font-extrabold tracking-tight"
+          >
             UILinkUp
           </Link>
 
-          <Link to="/dashboard" className="hover:text-blue-600">Dashboard</Link>
-          <Link to="/users" className="hover:text-blue-600">Users</Link>
-          <Link to="/connections" className="hover:text-blue-600">Connections</Link>
-          <Link to="/messages" className="hover:text-blue-600">Messages</Link>
+          <Link to="/dashboard" className="hover:text-blue-600">
+            Dashboard
+          </Link>
+          <Link to="/users" className="hover:text-blue-600">
+            Users
+          </Link>
+          <Link to="/connections" className="hover:text-blue-600">
+            Connections
+          </Link>
+          <Link to="/messages" className="hover:text-blue-600">
+            Messages
+          </Link>
 
           {/* JOBS DROPDOWN */}
           <div className="relative group">
@@ -83,13 +107,35 @@ function Nav() {
               Jobs ▾
             </span>
 
-            <div className="absolute left-0 mt-2 w-40 bg-white border rounded shadow-lg 
+            <div
+              className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg 
                             opacity-0 invisible group-hover:opacity-100 group-hover:visible 
-                            transition-all duration-150">
-              <Link to="/jobs" className="block px-3 py-2 hover:bg-gray-50">Jobs List</Link>
-              <Link to="/jobs/new" className="block px-3 py-2 hover:bg-gray-50">Post Job</Link>
-              <Link to="/jobs/me/posted" className="block px-3 py-2 hover:bg-gray-50">My Posted Jobs</Link>
-              <Link to="/jobs/me/applied" className="block px-3 py-2 hover:bg-gray-50">My Applications</Link>
+                            transition-all duration-150 z-20"
+            >
+              <Link
+                to="/jobs"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                Jobs List
+              </Link>
+              <Link
+                to="/jobs/new"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                Post Job
+              </Link>
+              <Link
+                to="/jobs/me/posted"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                My Posted Jobs
+              </Link>
+              <Link
+                to="/jobs/me/applied"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                My Applications
+              </Link>
             </div>
           </div>
 
@@ -99,20 +145,65 @@ function Nav() {
               Events ▾
             </span>
 
-            <div className="absolute left-0 mt-2 w-40 bg-white border rounded shadow-lg 
+            <div
+              className="absolute left-0 mt-2 w-44 bg-white border rounded shadow-lg 
                             opacity-0 invisible group-hover:opacity-100 group-hover:visible 
-                            transition-all duration-150">
-              <Link to="/events" className="block px-3 py-2 hover:bg-gray-50">Events List</Link>
-              <Link to="/events/new" className="block px-3 py-2 hover:bg-gray-50">Create Event</Link>
-              <Link to="/events/me" className="block px-3 py-2 hover:bg-gray-50">My Events</Link>
+                            transition-all duration-150 z-20"
+            >
+              <Link
+                to="/events"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                Events List
+              </Link>
+              <Link
+                to="/events/new"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                Create Event
+              </Link>
+              <Link
+                to="/events/me"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                My Events
+              </Link>
             </div>
           </div>
 
+          {/* GROUPS / FORUM DROPDOWN */}
+          <div className="relative group">
+            <span className="cursor-pointer hover:text-blue-600 font-medium">
+              Groups & Forum ▾
+            </span>
+
+            <div
+              className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-lg 
+                            opacity-0 invisible group-hover:opacity-100 group-hover:visible 
+                            transition-all duration-150 z-20"
+            >
+              <Link
+                to="/groups"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                Groups Directory
+              </Link>
+              <Link
+                to="/groups/feed"
+                className="block px-3 py-2 hover:bg-gray-50 text-sm"
+              >
+                Forum Feed
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* RIGHT */}
         <div className="flex items-center gap-3">
-          <Link to="/profile" className="text-sm text-gray-700 hover:text-blue-600">
+          <Link
+            to="/profile"
+            className="text-sm text-gray-700 hover:text-blue-600"
+          >
             {user?.name || 'Profile'}
           </Link>
           <button
@@ -133,6 +224,7 @@ function App() {
       <Router>
         <Nav />
         <Routes>
+          {/* AUTH */}
           <Route
             path="/login"
             element={
@@ -150,6 +242,7 @@ function App() {
             }
           />
 
+          {/* CORE PAGES */}
           <Route
             path="/dashboard"
             element={
@@ -199,7 +292,7 @@ function App() {
             }
           />
 
-          {/* Jobs List */}
+          {/* JOBS */}
           <Route
             path="/jobs"
             element={
@@ -208,8 +301,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* Post Job */}
           <Route
             path="/jobs/new"
             element={
@@ -218,8 +309,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* MUST COME FIRST */}
+          {/* MUST COME FIRST: applicants route */}
           <Route
             path="/jobs/:jobId/applicants"
             element={
@@ -228,8 +318,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* Job Detail */}
           <Route
             path="/jobs/:jobId"
             element={
@@ -238,8 +326,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* My posted jobs */}
           <Route
             path="/jobs/me/posted"
             element={
@@ -248,8 +334,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* My applications */}
           <Route
             path="/jobs/me/applied"
             element={
@@ -259,7 +343,7 @@ function App() {
             }
           />
 
-          {/* Events */}
+          {/* EVENTS */}
           <Route
             path="/events"
             element={
@@ -268,7 +352,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/events/new"
             element={
@@ -277,7 +360,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/events/:eventId"
             element={
@@ -286,7 +368,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/events/me"
             element={
@@ -295,7 +376,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/events/:eventId/registrants"
             element={
@@ -305,6 +385,49 @@ function App() {
             }
           />
 
+          {/* GROUPS / FORUM */}
+          <Route
+            path="/groups"
+            element={
+              <ProtectedRoute>
+                <Groups />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/feed"
+            element={
+              <ProtectedRoute>
+                <GroupFeed />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/:groupId"
+            element={
+              <ProtectedRoute>
+                <GroupDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/:groupId/posts/:postId"
+            element={
+              <ProtectedRoute>
+                <GroupPostDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/:groupId/members"
+            element={
+              <ProtectedRoute>
+                <GroupMembers />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ROOT */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>

@@ -19,6 +19,7 @@ app.use('/api/connections', require('./routes/connection')); // Connections (kir
 app.use('/api/messages', require('./routes/messages'));     // ✅ Messages (baru ditambahkan)
 app.use('/api/jobs', require('./routes/jobs'));             // Jobs (lowongan kerja)
 app.use('/api/events', require('./routes/events'));
+app.use('/api/groups', require('./routes/groups'));         // Groups & Forums (baru ditambahkan)
 
 // ---------- Healthcheck ----------
 app.get('/api/test', (req, res) => {

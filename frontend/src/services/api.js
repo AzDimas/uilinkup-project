@@ -32,21 +32,27 @@ export const userAPI = {
 /* ===== CONNECTIONS ===== */
 export const connectionAPI = {
   sendConnectionRequest: (userId) => api.post(`/connections/${userId}/send`),
-  checkConnectionStatus: (userId) => api.get(`/connections/status/${userId}`),
+  checkConnectionStatus: (userId) =>
+    api.get(`/connections/status/${userId}`),
   getMyConnections: () => api.get('/connections/my-connections'),
   getPendingRequests: () => api.get('/connections/pending-requests'),
   getSentRequests: () => api.get('/connections/sent-requests'),
   getConnectionStats: () => api.get('/connections/stats'),
-  acceptConnection: (connectionId) => api.put(`/connections/${connectionId}/accept`),
-  rejectConnection: (connectionId) => api.put(`/connections/${connectionId}/reject`),
-  removeConnection: (connectionId) => api.delete(`/connections/${connectionId}/remove`),
+  acceptConnection: (connectionId) =>
+    api.put(`/connections/${connectionId}/accept`),
+  rejectConnection: (connectionId) =>
+    api.put(`/connections/${connectionId}/reject`),
+  removeConnection: (connectionId) =>
+    api.delete(`/connections/${connectionId}/remove`),
 };
 
 /* ===== MESSAGES ===== */
 export const messageAPI = {
   getThreads: () => api.get('/messages/threads'),
-  getConversation: (userId, params = {}) => api.get(`/messages/${userId}`, { params }),
-  sendMessage: (userId, payload) => api.post(`/messages/${userId}`, payload),
+  getConversation: (userId, params = {}) =>
+    api.get(`/messages/${userId}`, { params }),
+  sendMessage: (userId, payload) =>
+    api.post(`/messages/${userId}`, payload),
   markAsRead: (userId) => api.put(`/messages/${userId}/read`),
 };
 
@@ -68,12 +74,15 @@ export const applicationsAPI = {
   updateStatus: (jobId, applicationId, status) =>
     api.patch(`/jobs/${jobId}/applications/${applicationId}`, { status }),
 
-  // Versi dengan pesan tambahan ke kandidat: updateStatusWithNote(jobId, applicationId, { status, note })
+  // Versi dengan pesan tambahan ke kandidat: { status, note }
   updateStatusWithNote: (jobId, applicationId, { status, note }) =>
-    api.patch(`/jobs/${jobId}/applications/${applicationId}`, { status, note }),
+    api.patch(`/jobs/${jobId}/applications/${applicationId}`, {
+      status,
+      note,
+    }),
 };
 
-// EVENTS
+/* ===== EVENTS ===== */
 export const eventsAPI = {
   list: (params = {}) => api.get('/events', { params }),
   detail: (eventId) => api.get(`/events/${eventId}`),
@@ -88,8 +97,55 @@ export const eventsAPI = {
   myHosting: () => api.get('/events/me/hosting/list'),
   myRegistered: () => api.get('/events/me/registered/list'),
 
-  registrants: (eventId) => api.get(`/events/${eventId}/registrants`), // organizer only
+  registrants: (eventId) =>
+    api.get(`/events/${eventId}/registrants`), // organizer only
 };
 
+/* ===== GROUPS & FORUM (NEW) ===== */
+export const groupsAPI = {
+  // daftar group, filter q, faculty, type, pagination
+  list: (params = {}) => api.get('/groups', { params }),
+
+  // detail 1 group
+  detail: (groupId) => api.get(`/groups/${groupId}`),
+
+  // buat group baru
+  create: (payload) => api.post('/groups', payload),
+
+  // join / leave
+  join: (groupId) => api.post(`/groups/${groupId}/join`),
+  leave: (groupId) => api.post(`/groups/${groupId}/leave`),
+
+  // list member group
+  members: (groupId) => api.get(`/groups/${groupId}/members`),
+
+  // global public forum feed (semua group yang tidak private)
+  globalFeed: (params = {}) => api.get('/groups/posts/feed', { params }),
+
+  // list post dalam 1 group
+  listPosts: (groupId, params = {}) =>
+    api.get(`/groups/${groupId}/posts`, { params }),
+
+  // detail post dalam group
+  getPost: (groupId, postId) =>
+    api.get(`/groups/${groupId}/posts/${postId}`),
+
+  // buat post baru dalam group
+  createPost: (groupId, payload) =>
+    api.post(`/groups/${groupId}/posts`, payload),
+
+  // replies
+  listReplies: (groupId, postId) =>
+    api.get(`/groups/${groupId}/posts/${postId}/replies`),
+
+  addReply: (groupId, postId, payload) =>
+    api.post(`/groups/${groupId}/posts/${postId}/replies`, payload),
+
+  // tandai reply sebagai jawaban
+  markAnswer: (groupId, postId, replyId) =>
+    api.post(
+      `/groups/${groupId}/posts/${postId}/replies/${replyId}/mark-answer`
+    ),
+};
 
 export default api;
