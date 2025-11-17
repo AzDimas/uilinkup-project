@@ -1,6 +1,7 @@
 // backend/controllers/jobsController.js
 const pool = require('../config/database');
 
+// helper
 const toInt = (v) => {
   const n = Number(v);
   if (!Number.isInteger(n)) throw new Error(`INVALID_INT:${v}`);
@@ -9,16 +10,13 @@ const toInt = (v) => {
 
 const nowIso = () => new Date().toISOString();
 
-/**
- * GET /api/jobs
- * Query:
- *  - q (search in title/company/location)
- *  - type (job_type)
- *  - location, company
- *  - skills (csv) -> any match
- *  - page (default 1), pageSize (default 20)
- *  - mine=posted|applied (dipakai di FE lain, tapi kita sediakan endpoint sendiri /me/..)
- */
+/* ============================================================
+   GET /api/jobs
+   Filter: q, type, location, company, skills, page, status, sort
+   - status: open | closed | all (default open)
+   - open   = is_active = true AND (expires_at IS NULL OR expires_at >= NOW())
+   - closed = is_active = false OR (expires_at < NOW())
+=============================================================== */
 exports.listJobs = async (req, res) => {
   try {
     const {
@@ -29,7 +27,8 @@ exports.listJobs = async (req, res) => {
       skills = '',
       page = '1',
       pageSize = '20',
-      active = 'true',
+      status = 'open',   // open | closed | all
+      sort = 'newest'    // newest | oldest
     } = req.query;
 
     const p = Math.max(1, parseInt(page, 10) || 1);
@@ -40,71 +39,86 @@ exports.listJobs = async (req, res) => {
     const params = [];
     let idx = 1;
 
-    if (active === 'true') {
-      where.push(`is_active = TRUE`);
-    }
+    const statusNorm = String(status || '').toLowerCase();
 
+    if (statusNorm === 'open') {
+      // hanya yang masih aktif dan belum lewat expires_at
+      where.push(`j.is_active = TRUE AND (j.expires_at IS NULL OR j.expires_at >= NOW())`);
+    } else if (statusNorm === 'closed') {
+      // yang sudah non-aktif ATAU sudah lewat expires_at
+      where.push(`(j.is_active = FALSE OR (j.expires_at IS NOT NULL AND j.expires_at < NOW()))`);
+    }
+    // status === 'all' -> tidak tambah kondisi
+
+    // q search
     if (q) {
       params.push(`%${q}%`);
       params.push(`%${q}%`);
       params.push(`%${q}%`);
-      where.push(`(title ILIKE $${idx++} OR company ILIKE $${idx++} OR location ILIKE $${idx++})`);
+      where.push(`(j.title ILIKE $${idx++} OR j.company ILIKE $${idx++} OR j.location ILIKE $${idx++})`);
     }
 
     if (type) {
       params.push(type);
-      where.push(`job_type = $${idx++}`);
+      where.push(`j.job_type = $${idx++}`);
     }
+
     if (location) {
       params.push(`%${location}%`);
-      where.push(`location ILIKE $${idx++}`);
+      where.push(`j.location ILIKE $${idx++}`);
     }
+
     if (company) {
       params.push(`%${company}%`);
-      where.push(`company ILIKE $${idx++}`);
+      where.push(`j.company ILIKE $${idx++}`);
     }
+
     if (skills) {
       const arr = skills.split(',').map(s => s.trim()).filter(Boolean);
       if (arr.length > 0) {
         params.push(arr);
-        where.push(`required_skills && $${idx++}::text[]`);
+        where.push(`j.required_skills && $${idx++}::text[]`);
       }
     }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+    let sortSql = `ORDER BY j.created_at DESC`;
+    if (sort === 'oldest') sortSql = `ORDER BY j.created_at ASC`;
+
     const { rows: totalRows } = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM jobs ${whereSql}`,
+      `SELECT COUNT(*)::int AS total FROM jobs j ${whereSql}`,
       params
     );
     const total = totalRows[0]?.total || 0;
 
     const { rows } = await pool.query(
-      `SELECT
-         j.*,
-         u.name AS poster_name,
-         u.email AS poster_email
-       FROM jobs j
-       JOIN users u ON u.user_id = j.posted_by_id
-       ${whereSql}
-       ORDER BY j.created_at DESC
-       LIMIT ${ps} OFFSET ${offset}`,
+      `SELECT j.*, 
+              u.name AS poster_name,
+              u.email AS poster_email
+         FROM jobs j
+         JOIN users u ON u.user_id = j.posted_by_id
+         ${whereSql}
+         ${sortSql}
+         LIMIT ${ps} OFFSET ${offset}`,
       params
     );
 
     res.json({ success: true, items: rows, total, page: p, pageSize: ps });
+
   } catch (err) {
     console.error('🔴 [JOBS] listJobs error:', err);
     res.status(500).json({ success: false, error: 'Gagal mengambil jobs: ' + err.message });
   }
 };
 
-/**
- * GET /api/jobs/:jobId
- */
+/* ============================================================
+   GET /api/jobs/:jobId
+=============================================================== */
 exports.getJobDetail = async (req, res) => {
   try {
     const jobId = toInt(req.params.jobId);
+
     const { rows } = await pool.query(
       `SELECT j.*, u.name AS poster_name, u.email AS poster_email
          FROM jobs j
@@ -112,7 +126,8 @@ exports.getJobDetail = async (req, res) => {
         WHERE j.job_id = $1`,
       [jobId]
     );
-    if (rows.length === 0) {
+
+    if (!rows.length) {
       return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
     }
 
@@ -123,16 +138,18 @@ exports.getJobDetail = async (req, res) => {
   }
 };
 
-/**
- * GET /api/jobs/me/posted
- */
+/* ============================================================
+   GET /api/jobs/me/posted
+=============================================================== */
 exports.listPostedByMe = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
+
     const { rows } = await pool.query(
       `SELECT * FROM jobs WHERE posted_by_id = $1 ORDER BY created_at DESC`,
       [me]
     );
+
     res.json({ success: true, items: rows });
   } catch (err) {
     console.error('🔴 [JOBS] listPostedByMe error:', err);
@@ -140,33 +157,36 @@ exports.listPostedByMe = async (req, res) => {
   }
 };
 
-/**
- * GET /api/jobs/me/applied
- * daftar lamaran yang saya kirim
- */
+/* ============================================================
+   GET /api/jobs/me/applied
+=============================================================== */
 exports.listAppliedByMe = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
+
     const { rows } = await pool.query(
       `SELECT a.application_id, a.job_id, a.cover_letter, a.resume_link,
               a.status, a.applied_at, a.status_note, a.status_updated_at,
-              j.title, j.company, j.location, j.job_type, j.posted_by_id
+              j.title, j.company, j.location, j.job_type, j.posted_by_id,
+              j.expires_at, j.is_active
          FROM job_applications a
          JOIN jobs j ON j.job_id = a.job_id
         WHERE a.applicant_id = $1
         ORDER BY a.applied_at DESC`,
       [me]
     );
+
     res.json({ success: true, items: rows });
+
   } catch (err) {
     console.error('🔴 [JOBS] listAppliedByMe error:', err);
     res.status(500).json({ success: false, error: 'Gagal mengambil aplikasi saya: ' + err.message });
   }
 };
 
-/**
- * POST /api/jobs
- */
+/* ============================================================
+   POST /api/jobs
+=============================================================== */
 exports.createJob = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
@@ -193,31 +213,27 @@ exports.createJob = async (req, res) => {
       ]
     );
 
-    // (Opsional) auto-buat feed post bertipe job di modul posts (kalau ada)
-    // try { await axios.post('/api/posts', { type:'job', jobId: rows[0].job_id, ... }); } catch {}
-
     res.json({ success: true, job: rows[0] });
+
   } catch (err) {
     console.error('🔴 [JOBS] createJob error:', err);
     res.status(500).json({ success: false, error: 'Gagal membuat job: ' + err.message });
   }
 };
 
-/**
- * PUT /api/jobs/:jobId
- * Hanya pemilik job
- */
+/* ============================================================
+   PUT /api/jobs/:jobId  (Owner only)
+=============================================================== */
 exports.updateJob = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
     const jobId = toInt(req.params.jobId);
 
-    // cek owner
     const { rows: chk } = await pool.query(
       `SELECT posted_by_id FROM jobs WHERE job_id = $1`,
       [jobId]
     );
-    if (chk.length === 0) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
+    if (!chk.length) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
     if (chk[0].posted_by_id !== me) return res.status(403).json({ success: false, error: 'Bukan pemilik job' });
 
     const {
@@ -249,15 +265,16 @@ exports.updateJob = async (req, res) => {
     );
 
     res.json({ success: true, job: rows[0] });
+
   } catch (err) {
     console.error('🔴 [JOBS] updateJob error:', err);
     res.status(500).json({ success: false, error: 'Gagal mengubah job: ' + err.message });
   }
 };
 
-/**
- * DELETE /api/jobs/:jobId  (soft deactivate)
- */
+/* ============================================================
+   DELETE /api/jobs/:jobId (soft deactivate)
+=============================================================== */
 exports.deactivateJob = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
@@ -267,7 +284,7 @@ exports.deactivateJob = async (req, res) => {
       `SELECT posted_by_id FROM jobs WHERE job_id = $1`,
       [jobId]
     );
-    if (chk.length === 0) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
+    if (!chk.length) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
     if (chk[0].posted_by_id !== me) return res.status(403).json({ success: false, error: 'Bukan pemilik job' });
 
     await pool.query(
@@ -276,51 +293,66 @@ exports.deactivateJob = async (req, res) => {
     );
 
     res.json({ success: true, deactivated: true });
+
   } catch (err) {
     console.error('🔴 [JOBS] deactivateJob error:', err);
     res.status(500).json({ success: false, error: 'Gagal menonaktifkan job: ' + err.message });
   }
 };
 
-/**
- * POST /api/jobs/:jobId/apply
- */
+/* ============================================================
+   POST /api/jobs/:jobId/apply
+=============================================================== */
 exports.applyJob = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
     const jobId = toInt(req.params.jobId);
+
     const { cover_letter = null, resume_link = null } = req.body || {};
 
-    // Cek job aktif
     const { rows: jrows } = await pool.query(
-      `SELECT is_active FROM jobs WHERE job_id = $1`,
+      `SELECT is_active, expires_at FROM jobs WHERE job_id = $1`,
       [jobId]
     );
-    if (jrows.length === 0) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
-    if (!jrows[0].is_active) return res.status(400).json({ success: false, error: 'Job tidak aktif' });
+    if (!jrows.length) {
+      return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
+    }
+
+    const job = jrows[0];
+
+    if (!job.is_active) {
+      return res.status(400).json({ success: false, error: 'Job tidak aktif' });
+    }
+
+    if (job.expires_at && new Date(job.expires_at) < new Date()) {
+      return res.status(400).json({ success: false, error: 'Pendaftaran telah ditutup (expired).' });
+    }
 
     const { rows } = await pool.query(
-      `INSERT INTO job_applications (job_id, applicant_id, cover_letter, resume_link)
+      `INSERT INTO job_applications 
+          (job_id, applicant_id, cover_letter, resume_link)
        VALUES ($1,$2,$3,$4)
        ON CONFLICT (job_id, applicant_id)
-       DO UPDATE SET cover_letter = EXCLUDED.cover_letter,
-                     resume_link = EXCLUDED.resume_link,
-                     applied_at = now(),
-                     status = 'pending'
+       DO UPDATE SET 
+         cover_letter = EXCLUDED.cover_letter,
+         resume_link = EXCLUDED.resume_link,
+         applied_at = NOW(),
+         status = 'pending'
        RETURNING *`,
       [jobId, me, cover_letter, resume_link]
     );
 
     res.json({ success: true, application: rows[0] });
+
   } catch (err) {
     console.error('🔴 [JOBS] applyJob error:', err);
     res.status(500).json({ success: false, error: 'Gagal apply job: ' + err.message });
   }
 };
 
-/**
- * GET /api/jobs/:jobId/applications  (hanya owner job)
- */
+/* ============================================================
+   GET /api/jobs/:jobId/applications
+=============================================================== */
 exports.listApplicationsForJob = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
@@ -330,7 +362,7 @@ exports.listApplicationsForJob = async (req, res) => {
       `SELECT posted_by_id FROM jobs WHERE job_id = $1`,
       [jobId]
     );
-    if (chk.length === 0) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
+    if (!chk.length) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
     if (chk[0].posted_by_id !== me) return res.status(403).json({ success: false, error: 'Bukan pemilik job' });
 
     const { rows } = await pool.query(
@@ -343,90 +375,92 @@ exports.listApplicationsForJob = async (req, res) => {
     );
 
     res.json({ success: true, items: rows });
+
   } catch (err) {
     console.error('🔴 [JOBS] listApplicationsForJob error:', err);
     res.status(500).json({ success: false, error: 'Gagal list aplikasi: ' + err.message });
   }
 };
 
-/**
- * PATCH /api/jobs/:jobId/applications/:applicationId
- * body: { status }
- */
+/* ============================================================
+   PATCH /api/jobs/:jobId/applications/:applicationId
+   (Update status & message)
+=============================================================== */
 exports.updateApplicationStatus = async (req, res) => {
   try {
     const me = toInt(req.user.userId);
     const jobId = toInt(req.params.jobId);
     const applicationId = toInt(req.params.applicationId);
+
     const { status, note = null } = req.body || {};
+    if (!status) return res.status(400).json({ success: false, error: 'Status wajib diisi' });
 
-    if (!status) {
-      return res.status(400).json({ success: false, error: 'Status wajib diisi' });
-    }
-
-    // owner check
     const { rows: chk } = await pool.query(
       `SELECT posted_by_id FROM jobs WHERE job_id = $1`,
       [jobId]
     );
-    if (chk.length === 0) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
+    if (!chk.length) return res.status(404).json({ success: false, error: 'Job tidak ditemukan' });
     if (chk[0].posted_by_id !== me) return res.status(403).json({ success: false, error: 'Bukan pemilik job' });
 
     const { rows } = await pool.query(
       `UPDATE job_applications
           SET status = $1,
               status_note = $2,
-              status_updated_at = now()
+              status_updated_at = NOW()
         WHERE application_id = $3 AND job_id = $4
         RETURNING *`,
       [status, note, applicationId, jobId]
     );
-    if (rows.length === 0) return res.status(404).json({ success: false, error: 'Aplikasi tidak ditemukan' });
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, error: 'Lamaran tidak ditemukan' });
+    }
 
     res.json({ success: true, application: rows[0] });
+
   } catch (err) {
     console.error('🔴 [JOBS] updateApplicationStatus error:', err);
     res.status(500).json({ success: false, error: 'Gagal update status: ' + err.message });
   }
 };
 
+/* ============================================================
+   PUT /api/job-applications/:applicationId/status (alias lama)
+=============================================================== */
 exports.updateApplicationStatusByAppId = async (req, res) => {
   try {
     const me = Number(req.user.userId);
     const applicationId = Number(req.params.applicationId);
     const { status } = req.body || {};
 
-    if (!Number.isInteger(applicationId)) {
-      return res.status(400).json({ success: false, error: 'applicationId tidak valid' });
-    }
-    if (!status) {
-      return res.status(400).json({ success: false, error: 'Status wajib diisi' });
-    }
+    if (!status) return res.status(400).json({ success: false, error: 'Status wajib diisi' });
 
-    // Ambil job_id & owner dari application
-    const { rows: appRows } = await pool.query(
+    const { rows: chk } = await pool.query(
       `SELECT a.job_id, j.posted_by_id
          FROM job_applications a
          JOIN jobs j ON j.job_id = a.job_id
         WHERE a.application_id = $1`,
       [applicationId]
     );
-    if (appRows.length === 0) {
+
+    if (!chk.length) {
       return res.status(404).json({ success: false, error: 'Aplikasi tidak ditemukan' });
     }
-    if (appRows[0].posted_by_id !== me) {
+
+    if (chk[0].posted_by_id !== me) {
       return res.status(403).json({ success: false, error: 'Bukan pemilik job' });
     }
 
-    const { rows: upd } = await pool.query(
-      `UPDATE job_applications
-          SET status = $1
+    const { rows } = await pool.query(
+      `UPDATE job_applications 
+          SET status = $1, status_updated_at = NOW()
         WHERE application_id = $2
         RETURNING *`,
       [status, applicationId]
     );
 
-    return res.json({ success: true, application: upd[0] });
+    res.json({ success: true, application: rows[0] });
+
   } catch (err) {
     console.error('🔴 [JOBS] updateApplicationStatusByAppId error:', err);
     res.status(500).json({ success: false, error: 'Gagal update status: ' + err.message });

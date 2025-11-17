@@ -20,7 +20,10 @@ export default function JobDetail() {
   const { jobId } = useParams();
   const { user } = useAuth();
 
-  const myId = useMemo(() => Number(user?.id ?? user?.userId ?? 0) || null, [user]);
+  const myId = useMemo(
+    () => (Number(user?.id ?? user?.userId ?? 0) || null),
+    [user]
+  );
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +62,7 @@ export default function JobDetail() {
       const found = list.find((a) => Number(a.job_id) === Number(jobId));
       if (found) {
         setHasApplied(true);
-        setMyApplication(found); // akan berisi status + status_note bila kolom ada
+        setMyApplication(found);
       } else {
         setHasApplied(false);
         setMyApplication(null);
@@ -102,6 +105,16 @@ export default function JobDetail() {
   if (loading) return <div className="p-4">Loading...</div>;
   if (!job) return <div className="p-4">Job not found.</div>;
 
+  const now = new Date();
+  const isExpired = job.expires_at ? new Date(job.expires_at) < now : false;
+  const isClosed = !job.is_active || isExpired;
+
+  const closedReason = !job.is_active
+    ? 'Lowongan ini sudah dinonaktifkan oleh pengiklan.'
+    : isExpired
+      ? 'Periode pendaftaran telah berakhir.'
+      : 'Lowongan sudah ditutup.';
+
   return (
     <div className="max-w-3xl mx-auto p-4">
       <div className="bg-white border rounded-lg p-5">
@@ -111,19 +124,30 @@ export default function JobDetail() {
             <div className="text-gray-700">
               {job.company} — {job.location}
             </div>
-            <div className="text-xs inline-block mt-1 px-2 py-0.5 rounded-full bg-gray-100">
-              {jobTypeLabel(job.job_type)}
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-xs inline-block px-2 py-0.5 rounded-full bg-gray-100">
+                {jobTypeLabel(job.job_type)}
+              </span>
+              {job.expires_at && (
+                <span className="text-xs text-gray-500">
+                  Tutup: {new Date(job.expires_at).toLocaleString()}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {hasApplied && Number(job.posted_by_id) !== Number(myId) && (
+            {hasApplied && !mine && (
               <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
                 Submitted
               </span>
             )}
-            {!job.is_active && (
+            {isClosed ? (
               <span className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-700">
-                Inactive
+                Closed
+              </span>
+            ) : (
+              <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
+                Open
               </span>
             )}
           </div>
@@ -173,7 +197,8 @@ export default function JobDetail() {
         </div>
       </div>
 
-      {Number(job.posted_by_id) !== Number(myId) && job.is_active && (
+      {/* Section Apply / Status */}
+      {Number(job.posted_by_id) !== Number(myId) && (
         <>
           {hasApplied ? (
             <div className="bg-white border rounded-lg p-5 mt-4">
@@ -205,6 +230,17 @@ export default function JobDetail() {
                   View my applications →
                 </Link>
               </div>
+            </div>
+          ) : isClosed ? (
+            <div className="bg-white border rounded-lg p-5 mt-4">
+              <h3 className="text-lg font-semibold mb-2">Lowongan ditutup</h3>
+              <p className="text-sm text-gray-600 mb-3">{closedReason}</p>
+              <button
+                disabled
+                className="bg-gray-200 text-gray-500 px-4 py-2 rounded cursor-not-allowed text-sm"
+              >
+                Sudah ditutup
+              </button>
             </div>
           ) : (
             <form onSubmit={onApply} className="bg-white border rounded-lg p-5 mt-4">

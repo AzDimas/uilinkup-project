@@ -21,8 +21,8 @@ const jobTypeLabel = (t) => {
 const toSnakeJobType = (s) => {
   if (!s) return '';
   const norm = s.trim().toLowerCase().replace(/\s+/g, '_');
-  const allowed = ['full_time','part_time','internship','contract','freelance','temporary'];
-  return allowed.includes(norm) ? norm : s; // kalau tidak cocok, tetap kirim apa adanya
+  const allowed = ['full_time', 'part_time', 'internship', 'contract', 'freelance', 'temporary'];
+  return allowed.includes(norm) ? norm : s;
 };
 
 export default function JobsList() {
@@ -36,13 +36,15 @@ export default function JobsList() {
   const location = searchParams.get('location') || '';
   const company = searchParams.get('company') || '';
   const skills = searchParams.get('skills') || '';
+  const status = searchParams.get('status') || 'open';   // open | closed | all
+  const sort = searchParams.get('sort') || 'newest';     // newest | oldest
   const page = Number(searchParams.get('page') || '1');
 
   const fetchList = async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/jobs', {
-        params: { q, type, location, company, skills, page, pageSize }
+        params: { q, type, location, company, skills, page, pageSize, status, sort },
       });
       setItems(data?.items || []);
       setTotal(data?.total || 0);
@@ -56,15 +58,34 @@ export default function JobsList() {
   useEffect(() => {
     fetchList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, type, location, company, skills, page]);
+  }, [q, type, location, company, skills, status, sort, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const updateParams = (patch) => {
+    setSearchParams({
+      q,
+      type,
+      location,
+      company,
+      skills,
+      status,
+      sort,
+      page,
+      ...patch,
+    });
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Jobs</h1>
-        <Link to="/jobs/new" className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">Post a Job</Link>
+        <Link
+          to="/jobs/new"
+          className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700"
+        >
+          Post a Job
+        </Link>
       </div>
 
       <div className="bg-white border rounded-lg p-4 mb-4">
@@ -73,35 +94,73 @@ export default function JobsList() {
             className="border rounded px-2 py-1"
             placeholder="Search title/company/location"
             defaultValue={q}
-            onBlur={(e)=> setSearchParams({ q: e.target.value, type, location, company, skills, page: 1 })}
+            onBlur={(e) =>
+              updateParams({ q: e.target.value, page: 1 })
+            }
           />
+
           <input
             className="border rounded px-2 py-1"
             placeholder="Type (Full Time, Part Time, ...)"
             defaultValue={type ? jobTypeLabel(type) : ''}
-            onBlur={(e)=> {
+            onBlur={(e) => {
               const snake = toSnakeJobType(e.target.value);
-              setSearchParams({ q, type: snake, location, company, skills, page: 1 });
+              updateParams({ type: snake, page: 1 });
             }}
           />
+
           <input
             className="border rounded px-2 py-1"
             placeholder="Location"
             defaultValue={location}
-            onBlur={(e)=> setSearchParams({ q, type, location: e.target.value, company, skills, page:1 })}
+            onBlur={(e) =>
+              updateParams({ location: e.target.value, page: 1 })
+            }
           />
+
           <input
             className="border rounded px-2 py-1"
             placeholder="Company"
             defaultValue={company}
-            onBlur={(e)=> setSearchParams({ q, type, location, company: e.target.value, skills, page:1 })}
+            onBlur={(e) =>
+              updateParams({ company: e.target.value, page: 1 })
+            }
           />
+
           <input
             className="border rounded px-2 py-1"
             placeholder="Skills csv (react,js)"
             defaultValue={skills}
-            onBlur={(e)=> setSearchParams({ q, type, location, company, skills: e.target.value, page:1 })}
+            onBlur={(e) =>
+              updateParams({ skills: e.target.value, page: 1 })
+            }
           />
+
+          {/* Baris kedua: Status + Sort */}
+          <div className="col-span-1 md:col-span-5 flex flex-wrap gap-2 mt-2">
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={status}
+              onChange={(e) =>
+                updateParams({ status: e.target.value, page: 1 })
+              }
+            >
+              <option value="open">Status: Open</option>
+              <option value="closed">Status: Closed</option>
+              <option value="all">Status: All</option>
+            </select>
+
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={sort}
+              onChange={(e) =>
+                updateParams({ sort: e.target.value, page: 1 })
+              }
+            >
+              <option value="newest">Sort: Terbaru → Terlama</option>
+              <option value="oldest">Sort: Terlama → Terbaru</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -111,41 +170,83 @@ export default function JobsList() {
         <div className="text-gray-500">No jobs found.</div>
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
-          {items.map(job => (
-            <Link key={job.job_id} to={`/jobs/${job.job_id}`} className="block border rounded-lg p-4 hover:shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{job.title}</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100">
-                  {jobTypeLabel(job.job_type)}
-                </span>
-              </div>
-              <div className="text-sm text-gray-700">{job.company} — {job.location}</div>
-              {job.required_skills?.length ? (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {job.required_skills.slice(0,6).map((s,i)=>(
-                    <span key={i} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{s}</span>
-                  ))}
+          {items.map((job) => {
+            const now = new Date();
+            const isExpired = job.expires_at
+              ? new Date(job.expires_at) < now
+              : false;
+            const isClosed = !job.is_active || isExpired;
+
+            return (
+              <Link
+                key={job.job_id}
+                to={`/jobs/${job.job_id}`}
+                className="block border rounded-lg p-4 hover:shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">{job.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100">
+                      {jobTypeLabel(job.job_type)}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        isClosed
+                          ? 'bg-red-50 text-red-700'
+                          : 'bg-green-50 text-green-700'
+                      }`}
+                    >
+                      {isClosed ? 'Closed' : 'Open'}
+                    </span>
+                  </div>
                 </div>
-              ) : null}
-              <div className="mt-2 text-xs text-gray-400">Posted: {new Date(job.created_at).toLocaleDateString()}</div>
-            </Link>
-          ))}
+
+                <div className="text-sm text-gray-700">
+                  {job.company} — {job.location}
+                </div>
+
+                {job.required_skills?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {job.required_skills.slice(0, 6).map((s, i) => (
+                      <span
+                        key={i}
+                        className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="mt-2 text-xs text-gray-400">
+                  Posted: {new Date(job.created_at).toLocaleDateString()}
+                </div>
+                <div className="mt-1 text-xs text-gray-500">
+                  {job.expires_at
+                    ? `Deadline: ${new Date(job.expires_at).toLocaleString()}`
+                    : 'No deadline'}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-4">
           <button
-            disabled={page<=1}
-            onClick={()=> setSearchParams({ q, type, location, company, skills, page: page-1 })}
+            disabled={page <= 1}
+            onClick={() => updateParams({ page: page - 1 })}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
             Prev
           </button>
-          <span className="text-sm">Page {page} / {totalPages}</span>
+          <span className="text-sm">
+            Page {page} / {totalPages}
+          </span>
           <button
-            disabled={page>=totalPages}
-            onClick={()=> setSearchParams({ q, type, location, company, skills, page: page+1 })}
+            disabled={page >= totalPages}
+            onClick={() => updateParams({ page: page + 1 })}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
             Next
