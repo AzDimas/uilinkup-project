@@ -1,8 +1,10 @@
 // server.js
 const express = require('express');
 const cors = require('cors');
+const dotenv = require("dotenv");
+const aiRoutes = require("./routes/ai");
 require('dotenv').config();
-
+dotenv.config();
 const app = express();
 
 // ---------- Core Middlewares ----------
@@ -20,6 +22,8 @@ app.use('/api/messages', require('./routes/messages'));     // ✅ Messages (bar
 app.use('/api/jobs', require('./routes/jobs'));             // Jobs (lowongan kerja)
 app.use('/api/events', require('./routes/events'));
 app.use('/api/groups', require('./routes/groups'));         // Groups & Forums (baru ditambahkan)
+app.use('/api/chat', require('./routes/chatbot'));
+app.use("/api/ai", aiRoutes);
 
 // ---------- Healthcheck ----------
 app.get('/api/test', (req, res) => {

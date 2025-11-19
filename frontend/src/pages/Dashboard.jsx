@@ -12,7 +12,10 @@ const Dashboard = () => {
   const [events, setEvents] = useState([]);
   const [feeds, setFeeds] = useState([]);
   const [loadingPreview, setLoadingPreview] = useState(true);
-
+  const [aiInput, setAiInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiAnswer, setAiAnswer] = useState(null);
   const fetchPreview = async () => {
     setLoadingPreview(true);
     try {
@@ -41,6 +44,29 @@ const Dashboard = () => {
   useEffect(() => {
     fetchPreview();
   }, []);
+  const runAiSearch = async (queryText) => {
+  const q = (queryText ?? aiInput).trim();
+  if (!q) return;
+
+  setAiLoading(true);
+  setAiError('');
+  try {
+    // kirim ke backend AI kamu
+    const res = await api.post('/ai/search', {
+      message: q,
+      // nanti kalau mau bisa tambahin keyword/location/skill di sini juga
+      // keyword: q,
+    });
+
+    setAiAnswer(res.data);
+  } catch (err) {
+    console.error('AI search error:', err?.response?.data || err.message);
+    setAiError(err?.response?.data?.error || 'Terjadi kesalahan pada AI.');
+    setAiAnswer(null);
+  } finally {
+    setAiLoading(false);
+  }
+};
 
   const joinedAtText = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('id-ID', {
@@ -310,10 +336,11 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-lg font-semibold">AI Career Assistant</h3>
-                <p className="text-xs opacity-80">Siap membantu Anda!</p>
+                <p className="text-xs opacity-80">Cari alumni, mentor, atau peluang karir pakai AI.
+                </p>
               </div>
               <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-                Coming soon
+                Beta
               </span>
             </div>
 
@@ -330,18 +357,34 @@ const Dashboard = () => {
             <div className="space-y-2 mb-4">
               <button
                 type="button"
+                onClick={() => {
+                  const text = 'Alumni yang bekerja sebagai backend engineer di Jakarta';
+                  setAiInput(text);
+                  runAiSearch(text);
+                }}
+
                 className="w-full text-left text-xs bg-white/10 hover:bg-white/20 rounded-full px-4 py-2"
               >
-                "Alumni yang bekerja di Google"
+                "Alumni yang bekerja sebagai backend engineer di Jakarta"
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  const text = 'Rekomendasi mentor untuk data science';
+                  setAiInput(text);
+                  runAiSearch(text);
+                }}
                 className="w-full text-left text-xs bg-white/10 hover:bg-white/20 rounded-full px-4 py-2"
               >
                 "Rekomendasi mentor untuk data science"
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  const text = 'Event tech bulan ini';
+                  setAiInput(text);
+                  runAiSearch(text);
+                }}
                 className="w-full text-left text-xs bg-white/10 hover:bg-white/20 rounded-full px-4 py-2"
               >
                 "Event tech bulan ini"
@@ -353,22 +396,69 @@ const Dashboard = () => {
               className="flex items-center gap-2 bg-white rounded-full px-3 py-1"
               onSubmit={(e) => {
                 e.preventDefault();
-                alert(
-                  'AI Career Assistant belum aktif. Fitur segera hadir 😊'
-                );
+                runAiSearch();
               }}
             >
               <input
                 className="flex-1 text-xs text-gray-800 outline-none border-none bg-transparent"
                 placeholder="Tanya AI Assistant..."
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
               />
               <button
                 type="submit"
+                disabled={aiLoading}
                 className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-lg leading-none hover:bg-green-600"
               >
-                ➤
+                ➤{aiLoading ? '…' : '➤'}
               </button>
             </form>
+            {/* Error / hasil dari backend AI */}
+            {aiError && (
+              <div className="mt-3 text-xs text-red-200">
+                {aiError}
+              </div>
+            )}
+            
+            {aiAnswer && (
+              <div className="mt-3 bg-white/20 rounded-lg p-4 text-sm">
+                <div className="italic mb-2 text-xs">Jawaban AI:</div>
+                <p className="mb-2">{aiAnswer.message}</p>
+
+                {aiAnswer.results?.length > 0 && (
+                  <ul className="space-y-2">
+                    {aiAnswer.results.map((r, idx) => (
+                      <li
+                        key={idx}
+                        className="border border-white/15 rounded-md p-2"
+                      >
+                        <div className="text-[11px] uppercase tracking-wide mb-1 opacity-80">
+                          {r.source}
+                        </div>
+                        <div className="font-medium">
+                          {r.title || r.bio?.slice(0, 60) || 'Result'}
+                        </div>
+                        {r.context && (
+                          <div className="text-[11px] opacity-80">
+                            {r.context}
+                          </div>
+                        )}
+                        {r.bio && (
+                          <div className="text-[11px] opacity-80 line-clamp-2 mt-1">
+                            {r.bio}
+                          </div>
+                        )}
+                        {typeof r.score === 'number' && (
+                          <div className="text-[10px] opacity-60 mt-1">
+                            score: {r.score.toFixed(3)}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
