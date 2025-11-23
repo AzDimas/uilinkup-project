@@ -12,10 +12,12 @@ const Dashboard = () => {
   const [events, setEvents] = useState([]);
   const [feeds, setFeeds] = useState([]);
   const [loadingPreview, setLoadingPreview] = useState(true);
+
   const [aiInput, setAiInput] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiAnswer, setAiAnswer] = useState(null);
+
   const fetchPreview = async () => {
     setLoadingPreview(true);
     try {
@@ -44,29 +46,29 @@ const Dashboard = () => {
   useEffect(() => {
     fetchPreview();
   }, []);
+
   const runAiSearch = async (queryText) => {
-  const q = (queryText ?? aiInput).trim();
-  if (!q) return;
+    const q = (queryText ?? aiInput).trim();
+    if (!q) return;
 
-  setAiLoading(true);
-  setAiError('');
-  try {
-    // kirim ke backend AI kamu
-    const res = await api.post('/ai/search', {
-      message: q,
-      // nanti kalau mau bisa tambahin keyword/location/skill di sini juga
-      // keyword: q,
-    });
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const res = await api.post('/ai/search', {
+        message: q,
+        // bisa tambah keyword/location/skill kalau mau
+        // keyword: q,
+      });
 
-    setAiAnswer(res.data);
-  } catch (err) {
-    console.error('AI search error:', err?.response?.data || err.message);
-    setAiError(err?.response?.data?.error || 'Terjadi kesalahan pada AI.');
-    setAiAnswer(null);
-  } finally {
-    setAiLoading(false);
-  }
-};
+      setAiAnswer(res.data);
+    } catch (err) {
+      console.error('AI search error:', err?.response?.data || err.message);
+      setAiError(err?.response?.data?.error || 'Terjadi kesalahan pada AI.');
+      setAiAnswer(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const joinedAtText = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('id-ID', {
@@ -77,6 +79,21 @@ const Dashboard = () => {
     : 'Baru bergabung';
 
   const initial = (user?.name || 'U').charAt(0).toUpperCase();
+
+  const formatSourceLabel = (source) => {
+    switch (source) {
+      case 'alumni':
+        return 'ALUMNI';
+      case 'student':
+        return 'STUDENT';
+      case 'job':
+        return 'JOB';
+      case 'event':
+        return 'EVENT';
+      default:
+        return (source || '').toUpperCase();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -89,9 +106,8 @@ const Dashboard = () => {
 
           {/* Top section: Profile & Getting Started */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Profil & Status Akun (besar, 2 kolom) */}
+            {/* Profil & Status Akun */}
             <div className="lg:col-span-2 bg-white border rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              {/* Left: basic profile */}
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
                   {initial}
@@ -123,7 +139,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Right: account status + actions */}
               <div className="text-xs text-gray-600 space-y-3 md:text-right w-full md:w-auto">
                 <div>
                   <div className="font-medium text-gray-800 mb-2">
@@ -331,12 +346,13 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* AI Career Assistant (UI only) */}
+          {/* AI Career Assistant */}
           <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-5 text-white shadow-md">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-lg font-semibold">AI Career Assistant</h3>
-                <p className="text-xs opacity-80">Cari alumni, mentor, atau peluang karir pakai AI.
+                <p className="text-xs opacity-80">
+                  Cari alumni, mentor, atau peluang karir pakai AI.
                 </p>
               </div>
               <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
@@ -358,11 +374,11 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const text = 'Alumni yang bekerja sebagai backend engineer di Jakarta';
+                  const text =
+                    'Alumni yang bekerja sebagai backend engineer di Jakarta';
                   setAiInput(text);
                   runAiSearch(text);
                 }}
-
                 className="w-full text-left text-xs bg-white/10 hover:bg-white/20 rounded-full px-4 py-2"
               >
                 "Alumni yang bekerja sebagai backend engineer di Jakarta"
@@ -391,7 +407,7 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* Input (dummy) */}
+            {/* Input */}
             <form
               className="flex items-center gap-2 bg-white rounded-full px-3 py-1"
               onSubmit={(e) => {
@@ -408,18 +424,19 @@ const Dashboard = () => {
               <button
                 type="submit"
                 disabled={aiLoading}
-                className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-lg leading-none hover:bg-green-600"
+                className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-lg leading-none hover:bg-green-600 disabled:opacity-60"
               >
-                ➤{aiLoading ? '…' : '➤'}
+                {aiLoading ? '…' : '➤'}
               </button>
             </form>
+
             {/* Error / hasil dari backend AI */}
             {aiError && (
               <div className="mt-3 text-xs text-red-200">
                 {aiError}
               </div>
             )}
-            
+
             {aiAnswer && (
               <div className="mt-3 bg-white/20 rounded-lg p-4 text-sm">
                 <div className="italic mb-2 text-xs">Jawaban AI:</div>
@@ -430,24 +447,72 @@ const Dashboard = () => {
                     {aiAnswer.results.map((r, idx) => (
                       <li
                         key={idx}
-                        className="border border-white/15 rounded-md p-2"
+                        className="border border-white/15 rounded-md p-2 bg-black/5"
                       >
-                        <div className="text-[11px] uppercase tracking-wide mb-1 opacity-80">
-                          {r.source}
+                        {/* SOURCE LABEL */}
+                        <div className="text-[10px] uppercase tracking-wide mb-1 opacity-70">
+                          {formatSourceLabel(r.source)}
                         </div>
-                        <div className="font-medium">
-                          {r.title || r.bio?.slice(0, 60) || 'Result'}
+
+                        {/* NAMA (UTAMA) */}
+                        <div className="font-semibold text-sm">
+                          {r.name
+                            ? r.name
+                            : r.title
+                            ? r.title
+                            : r.source === 'student'
+                            ? 'Mahasiswa'
+                            : r.source === 'alumni'
+                            ? 'Alumni'
+                            : 'Result'}
                         </div>
-                        {r.context && (
-                          <div className="text-[11px] opacity-80">
-                            {r.context}
+
+                        {/* TITLE + CONTEXT (job/fakultas/perusahaan) */}
+                        {(r.title || r.context) && (
+                          <div className="text-[11px] opacity-90">
+                            {r.title && <span>{r.title}</span>}
+                            {r.title && r.context && <span> • </span>}
+                            {r.context && <span>{r.context}</span>}
                           </div>
                         )}
+
+                        {/* FAKULTAS & ANGKATAN */}
+                        {(r.fakultas || r.angkatan) && (
+                          <div className="text-[11px] opacity-80">
+                            {r.fakultas && <span>Fakultas: {r.fakultas}</span>}
+                            {r.fakultas && r.angkatan && <span> • </span>}
+                            {r.angkatan && (
+                              <span>Angkatan: {r.angkatan}</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* IPK & SEMESTER */}
+                        {(r.ipk || r.semester) && (
+                          <div className="text-[11px] opacity-80">
+                            {r.ipk && <span>IPK: {r.ipk}</span>}
+                            {r.ipk && r.semester && <span> • </span>}
+                            {r.semester && (
+                              <span>Semester: {r.semester}</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* INTEREST FIELD */}
+                        {r.interest && r.interest.length > 0 && (
+                          <div className="text-[11px] opacity-80">
+                            Minat: {r.interest.join(', ')}
+                          </div>
+                        )}
+
+                        {/* BIO */}
                         {r.bio && (
-                          <div className="text-[11px] opacity-80 line-clamp-2 mt-1">
+                          <div className="text-[11px] opacity-90 mt-1 line-clamp-2">
                             {r.bio}
                           </div>
                         )}
+
+                        {/* SCORE */}
                         {typeof r.score === 'number' && (
                           <div className="text-[10px] opacity-60 mt-1">
                             score: {r.score.toFixed(3)}
