@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { userAPI, connectionAPI } from '../services/api';
+import api, { userAPI, connectionAPI, eventsAPI } from '../services/api';
 
 const Profile = () => {
   const { user, logout } = useAuth();
@@ -13,9 +13,11 @@ const Profile = () => {
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
 
-  // 🔢 Stats koneksi user login
+  // 🔢 Stats: koneksi, event diikuti, postingan
   const [stats, setStats] = useState({
     totalConnections: 0,
+    eventsJoined: 0,
+    totalPosts: 0,
   });
 
   // Pilihan fakultas (samakan dengan Register.jsx)
@@ -43,21 +45,61 @@ const Profile = () => {
       .filter((s) => s.length > 0);
   };
 
-  useEffect(() => {
-    const init = async () => {
-      await fetchProfile();
-      await fetchConnectionStatsFromLists();
-    };
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // 🔹 Ambil statistik: koneksi, event diikuti, postingan
+  const fetchStats = async (userId) => {
+    try {
+      const [connectionsRes, eventsRes, postsRes] = await Promise.all([
+        connectionAPI.getMyConnections(),
+        eventsAPI.myRegistered(),
+        api.get('/groups/posts/feed', {
+          params: {
+            scope: 'my',   // post dari group yang user join
+            page: 1,
+            pageSize: 100, // asumsi cukup besar
+          },
+        }),
+      ]);
+
+      // Koneksi
+      const connections =
+        connectionsRes.data?.connections || connectionsRes.data || [];
+
+      // Event diikuti
+      const registeredEvents =
+        eventsRes.data?.items ||
+        eventsRes.data?.events ||
+        [];
+
+      // Postingan: filter hanya yang author_id = userId
+      const posts = postsRes.data?.items || [];
+      const myPosts = posts.filter((p) => {
+        const authorId = p.author_id || p.authorId;
+        return authorId === userId;
+      });
+
+      setStats({
+        totalConnections: Array.isArray(connections) ? connections.length : 0,
+        eventsJoined: Array.isArray(registeredEvents)
+          ? registeredEvents.length
+          : 0,
+        totalPosts: myPosts.length,
+      });
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+      setStats((prev) => ({
+        ...prev,
+        eventsJoined: 0,
+        totalPosts: 0,
+      }));
+    }
+  };
 
   const fetchProfile = async () => {
     try {
       const response = await userAPI.getProfile();
       const raw = response.data.user || {};
 
-      // Normalisasi array di profile (bukan di form) biar tampilan rapi
+      // Normalisasi array di profile (untuk tampilan)
       const normalized = {
         ...raw,
         interests: Array.isArray(raw.interests)
@@ -74,13 +116,18 @@ const Profile = () => {
 
       setProfile(normalized);
 
-      // 🟡 formData pakai string mentah untuk textarea,
+      // formData pakai string mentah untuk textarea,
       // supaya user bisa ngetik koma & spasi bebas.
       setFormData({
         ...normalized,
         interestsText: normalized.interests.join(', '),
         skillsText: normalized.skills.join(', '),
       });
+
+      // Setelah tau userId, ambil statistik
+      if (normalized.id) {
+        await fetchStats(normalized.id);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -88,25 +135,10 @@ const Profile = () => {
     }
   };
 
-  // 👉 Ambil angka koneksi dari endpoint list koneksi
-  const fetchConnectionStatsFromLists = async () => {
-    try {
-      const connectionsRes = await connectionAPI.getMyConnections();
-      const connections =
-        connectionsRes.data?.connections || connectionsRes.data || [];
-
-      setStats({
-        totalConnections: Array.isArray(connections)
-          ? connections.length
-          : 0,
-      });
-    } catch (error) {
-      console.error('Error fetching connection stats:', error);
-      setStats({
-        totalConnections: 0,
-      });
-    }
-  };
+  useEffect(() => {
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEdit = () => {
     setEditing(true);
@@ -141,7 +173,7 @@ const Profile = () => {
     try {
       const payload = { ...formData };
 
-      // 🔑 Konversi string textarea menjadi array untuk dikirim ke backend
+      // Konversi string textarea → array utk backend
       if (payload.interestsText !== undefined) {
         payload.interests = parseCommaSeparated(payload.interestsText);
         delete payload.interestsText;
@@ -175,7 +207,7 @@ const Profile = () => {
       }
 
       await userAPI.updateProfile(payload);
-      await fetchProfile();
+      await fetchProfile(); // refresh profile + stats
       setEditing(false);
       alert('Profil berhasil diperbarui!');
     } catch (error) {
@@ -773,11 +805,15 @@ const Profile = () => {
                       <span className="text-sm text-gray-600">
                         Event diikuti
                       </span>
-                      <span className="font-medium">0</span>
+                      <span className="font-medium">
+                        {stats.eventsJoined}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Postingan</span>
-                      <span className="font-medium">0</span>
+                      <span className="font-medium">
+                        {stats.totalPosts}
+                      </span>
                     </div>
                   </div>
                 </div>
