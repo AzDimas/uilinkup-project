@@ -1,5 +1,6 @@
 // backend/controllers/eventsController.js
 const pool = require('../config/database');
+const jwt = require('jsonwebtoken');
 
 const toInt = (v) => {
   const n = Number(v);
@@ -143,13 +144,48 @@ exports.getEventDetail = async (req, res) => {
     }
 
     const event = rows[0];
+
+    // ============================
+    //  🔑 DETEKSI USER OPTIONAL
+    // ============================
+    let userId = null;
+
+    // 1) Kalau route dipanggil lewat middleware auth (future-proof)
+    if (req.user && req.user.userId) {
+      try {
+        userId = toInt(req.user.userId);
+      } catch (e) {
+        userId = null;
+      }
+    }
+
+    // 2) Kalau TIDAK ada req.user, coba baca token dari Authorization header
+    if (!userId) {
+      const authHeader = req.headers.authorization || req.headers.Authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          if (decoded && decoded.userId) {
+            userId = toInt(decoded.userId);
+          }
+        } catch (err) {
+          // Token invalid / expired -> biarkan saja, dianggap anon
+          console.log('[EVENTS] Optional auth decode failed:', err.message);
+          userId = null;
+        }
+      }
+    }
+
+    // ============================
+    //  👤 Ambil myRegistration kalau userId ada
+    // ============================
     let myRegistration = null;
 
-    if (req.user && req.user.userId) {
-      const me = toInt(req.user.userId);
+    if (userId) {
       const mine = await pool.query(
         `SELECT * FROM event_registrations WHERE event_id = $1 AND user_id = $2`,
-        [eventId, me]
+        [eventId, userId]
       );
       if (mine.rows.length > 0) {
         myRegistration = mine.rows[0];

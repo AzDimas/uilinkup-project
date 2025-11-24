@@ -8,7 +8,8 @@ const {
   getSentRequests,
   checkConnectionStatus,
   removeConnection,
-  getConnectionStats
+  getConnectionStats,
+  getConnectionStatsByUserId
 } = require('../controllers/connectionController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -20,6 +21,7 @@ router.get('/my-connections', authMiddleware, getUserConnections);
 router.get('/pending-requests', authMiddleware, getPendingRequests);
 router.get('/sent-requests', authMiddleware, getSentRequests);
 router.get('/stats', authMiddleware, getConnectionStats);
+router.get('/stats/:userId', authMiddleware, getConnectionStatsByUserId);
 router.put('/:connectionId/accept', authMiddleware, acceptConnectionRequest);
 router.put('/:connectionId/reject', authMiddleware, rejectConnectionRequest);
 router.delete('/:connectionId/remove', authMiddleware, removeConnection);

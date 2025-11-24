@@ -434,6 +434,20 @@ const removeConnection = async (req, res) => {
   }
 };
 
+// GET STATS HELPER
+const getConnectionStatsInternal = async (userId) => {
+  const { rows } = await pool.query(
+    `SELECT 
+      COUNT(*) FILTER (WHERE status = 'accepted') AS total_connections,
+      COUNT(*) FILTER (WHERE status = 'pending') AS pending_requests
+     FROM connections 
+     WHERE user1_id = $1 OR user2_id = $1`,
+    [userId]
+  );
+
+  return rows[0] || { total_connections: 0, pending_requests: 0 };
+};
+
 // GET STATS
 const getConnectionStats = async (req, res) => {
   console.log('🟡 [CONNECTION] Get connection stats:', {
@@ -467,6 +481,51 @@ const getConnectionStats = async (req, res) => {
   }
 };
 
+// GET STATS UNTUK USER LAIN (BY ID)
+const getConnectionStatsByUserId = async (req, res) => {
+  const targetUserId = parseInt(req.params.userId, 10);
+  console.log('🟡 [CONNECTION] Get connection stats by userId:', {
+    requester: req.user.userId,
+    targetUserId
+  });
+
+  try {
+    if (Number.isNaN(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID tidak valid'
+      });
+    }
+
+    // pastikan user target ada
+    const userCheck = await pool.query(
+      'SELECT user_id FROM users WHERE user_id = $1',
+      [targetUserId]
+    );
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User tidak ditemukan'
+      });
+    }
+
+    const stats = await getConnectionStatsInternal(targetUserId);
+
+    console.log('🟢 [CONNECTION] Stats (by userId):', stats);
+
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (err) {
+    console.error('🔴 [CONNECTION] Get connection stats by userId error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Gagal mengambil statistik koneksi: ' + err.message
+    });
+  }
+};
+
 module.exports = {
   sendConnectionRequest,
   acceptConnectionRequest,
@@ -476,5 +535,6 @@ module.exports = {
   getSentRequests,
   checkConnectionStatus,
   removeConnection,
-  getConnectionStats
+  getConnectionStats,
+  getConnectionStatsByUserId
 };

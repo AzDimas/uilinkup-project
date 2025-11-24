@@ -1,11 +1,30 @@
+// backend/controllers/userController.js
 const pool = require('../config/database');
 
-// GET USER PROFILE - UPDATE BAGIAN INI
+// Helper: apapun bentuk yang datang dari req.body (string / array) → text[]
+const toArrayFromBody = (val) => {
+  if (Array.isArray(val)) return val; // sudah array → langsung pakai
+
+  if (typeof val === 'string') {
+    return val
+      .split(',')              // pisahkan dengan koma
+      .map((s) => s.trim())    // buang spasi kiri-kanan
+      .filter((s) => s.length > 0); // buang string kosong
+  }
+
+  // kalau undefined / null → tidak diupdate (biarkan null di caller)
+  return null;
+};
+
+// ======================================================
+// GET USER PROFILE
+// ======================================================
 const getUserProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    
-    const result = await pool.query(`
+
+    const result = await pool.query(
+      `
       SELECT 
         u.user_id, 
         u.name, 
@@ -13,7 +32,7 @@ const getUserProfile = async (req, res) => {
         u.role, 
         u.angkatan, 
         u.fakultas,
-        u.created_at,  -- ✅ TAMBAHKAN INI
+        u.created_at,
         -- Alumni fields
         ap.bio as alumni_bio,
         ap.skills as alumni_skills,
@@ -42,14 +61,16 @@ const getUserProfile = async (req, res) => {
       LEFT JOIN student_profiles sp ON u.user_id = sp.user_id
       LEFT JOIN admin_profiles adp ON u.user_id = adp.user_id
       WHERE u.user_id = $1
-    `, [userId]);
+    `,
+      [userId]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     const userData = result.rows[0];
-    
+
     let profile = {
       id: userData.user_id,
       name: userData.name,
@@ -57,7 +78,7 @@ const getUserProfile = async (req, res) => {
       role: userData.role,
       angkatan: userData.angkatan,
       fakultas: userData.fakultas,
-      createdAt: userData.created_at  // ✅ TAMBAHKAN INI
+      createdAt: userData.created_at,
     };
 
     if (userData.role === 'alumni') {
@@ -87,54 +108,60 @@ const getUserProfile = async (req, res) => {
 
     res.json({
       success: true,
-      user: profile
+      user: profile,
     });
-
   } catch (err) {
     console.error('Get profile error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-// GET ALL USERS - UPDATE BAGIAN INI
+// ======================================================
+// GET ALL USERS
+// ======================================================
 const getAllUsers = async (req, res) => {
   try {
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       SELECT user_id, name, email, role, angkatan, fakultas, created_at
       FROM users 
       ORDER BY name
       LIMIT 20
-    `);
+    `
+    );
 
     res.json({
       success: true,
-      users: result.rows.map(user => ({
+      users: result.rows.map((user) => ({
         id: user.user_id,
         name: user.name,
         email: user.email,
         role: user.role,
         angkatan: user.angkatan,
         fakultas: user.fakultas,
-        createdAt: user.created_at  // ✅ TAMBAHKAN INI
-      }))
+        createdAt: user.created_at,
+      })),
     });
-
   } catch (err) {
     console.error('Get users error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-// UPDATE USER PROFILE (SUPPORT PARTIAL UPDATE - INCLUDING ADMIN)
+// ======================================================
+// UPDATE USER PROFILE (PARTIAL) – termasuk admin / student / alumni
+// ======================================================
 const updateUserProfile = async (req, res) => {
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
     const userId = req.user.userId;
     const updateData = req.body;
 
-    // Update users table (hanya field yang dikirim)
+    // --------------------
+    // Update tabel users
+    // --------------------
     const userFields = [];
     const userValues = [];
     let userParamCount = 0;
@@ -160,14 +187,16 @@ const updateUserProfile = async (req, res) => {
       );
     }
 
-    // Get user role
+    // ambil role
     const userResult = await client.query(
       'SELECT role FROM users WHERE user_id = $1',
       [userId]
     );
     const role = userResult.rows[0].role;
 
-    // Update profile berdasarkan role (hanya field yang dikirim)
+    // --------------------
+    // Update alumni_profiles
+    // --------------------
     if (role === 'alumni') {
       const alumniFields = [];
       const alumniValues = [];
@@ -177,10 +206,14 @@ const updateUserProfile = async (req, res) => {
         alumniFields.push(`bio = $${++alumniParamCount}`);
         alumniValues.push(updateData.bio);
       }
+
+      // skills: string "python, ai" → array → text[]
       if (updateData.skills !== undefined) {
+        const skillsArray = toArrayFromBody(updateData.skills);
         alumniFields.push(`skills = $${++alumniParamCount}`);
-        alumniValues.push(updateData.skills);
+        alumniValues.push(skillsArray);
       }
+
       if (updateData.current_job !== undefined) {
         alumniFields.push(`current_job = $${++alumniParamCount}`);
         alumniValues.push(updateData.current_job);
@@ -221,7 +254,11 @@ const updateUserProfile = async (req, res) => {
           alumniValues
         );
       }
-    } else if (role === 'student') {
+    }
+    // --------------------
+    // Update student_profiles
+    // --------------------
+    else if (role === 'student') {
       const studentFields = [];
       const studentValues = [];
       let studentParamCount = 0;
@@ -230,10 +267,16 @@ const updateUserProfile = async (req, res) => {
         studentFields.push(`bio = $${++studentParamCount}`);
         studentValues.push(updateData.bio);
       }
+
+      // interest_fields: bisa dari updateData.interests atau updateData.skills
       if (updateData.interests !== undefined || updateData.skills !== undefined) {
+        const rawInterests = updateData.interests ?? updateData.skills;
+        const interestsArray = toArrayFromBody(rawInterests);
+
         studentFields.push(`interest_fields = $${++studentParamCount}`);
-        studentValues.push(updateData.interests || updateData.skills);
+        studentValues.push(interestsArray);
       }
+
       if (updateData.nim !== undefined) {
         studentFields.push(`nim = $${++studentParamCount}`);
         studentValues.push(updateData.nim);
@@ -242,10 +285,20 @@ const updateUserProfile = async (req, res) => {
         studentFields.push(`current_semester = $${++studentParamCount}`);
         studentValues.push(updateData.current_semester);
       }
+
+      // IPK: kosong → null
       if (updateData.ipk !== undefined) {
+        let ipkVal = updateData.ipk;
+        if (ipkVal === '' || ipkVal === null) {
+          ipkVal = null;
+        } else {
+          ipkVal = Number(ipkVal);
+          if (Number.isNaN(ipkVal)) ipkVal = null;
+        }
         studentFields.push(`ipk = $${++studentParamCount}`);
-        studentValues.push(updateData.ipk);
+        studentValues.push(ipkVal);
       }
+
       if (updateData.linkedin_url !== undefined) {
         studentFields.push(`linkedin_url = $${++studentParamCount}`);
         studentValues.push(updateData.linkedin_url);
@@ -266,7 +319,11 @@ const updateUserProfile = async (req, res) => {
           studentValues
         );
       }
-    } else if (role === 'admin') {
+    }
+    // --------------------
+    // Update admin_profiles
+    // --------------------
+    else if (role === 'admin') {
       const adminFields = [];
       const adminValues = [];
       let adminParamCount = 0;
@@ -290,12 +347,11 @@ const updateUserProfile = async (req, res) => {
     }
 
     await client.query('COMMIT');
-    
+
     res.json({
       success: true,
-      message: 'Profile updated successfully'
+      message: 'Profile updated successfully',
     });
-
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Update profile error:', err);
@@ -305,53 +361,81 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-// DELETE USER PROFILE (HARD DELETE - CLEAN VERSION)
+// ======================================================
+// DELETE USER PROFILE (HARD DELETE - CLEAN)
+// ======================================================
 const deleteUserProfile = async (req, res) => {
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
     const userId = req.user.userId;
 
-    // Delete dari semua related tables
-    await client.query('DELETE FROM messages WHERE sender_id = $1 OR receiver_id = $1', [userId]);
-    await client.query('DELETE FROM connections WHERE user1_id = $1 OR user2_id = $1', [userId]);
-    await client.query('DELETE FROM event_registrations WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM job_applications WHERE applicant_id = $1', [userId]);
-    await client.query('DELETE FROM ai_recommendations WHERE user_id = $1 OR recommended_user_id = $1', [userId]);
-    await client.query('DELETE FROM chat_sessions WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM group_members WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM alumni_profiles WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM student_profiles WHERE user_id = $1', [userId]);
-    await client.query('DELETE FROM admin_profiles WHERE user_id = $1', [userId]);
+    await client.query(
+      'DELETE FROM messages WHERE sender_id = $1 OR receiver_id = $1',
+      [userId]
+    );
+    await client.query(
+      'DELETE FROM connections WHERE user1_id = $1 OR user2_id = $1',
+      [userId]
+    );
+    await client.query(
+      'DELETE FROM event_registrations WHERE user_id = $1',
+      [userId]
+    );
+    await client.query(
+      'DELETE FROM job_applications WHERE applicant_id = $1',
+      [userId]
+    );
+    await client.query(
+      'DELETE FROM ai_recommendations WHERE user_id = $1 OR recommended_user_id = $1',
+      [userId]
+    );
+    await client.query('DELETE FROM chat_sessions WHERE user_id = $1', [
+      userId,
+    ]);
+    await client.query('DELETE FROM group_members WHERE user_id = $1', [
+      userId,
+    ]);
+    await client.query('DELETE FROM alumni_profiles WHERE user_id = $1', [
+      userId,
+    ]);
+    await client.query('DELETE FROM student_profiles WHERE user_id = $1', [
+      userId,
+    ]);
+    await client.query('DELETE FROM admin_profiles WHERE user_id = $1', [
+      userId,
+    ]);
     await client.query('DELETE FROM users WHERE user_id = $1', [userId]);
 
     await client.query('COMMIT');
-    
+
     res.json({
       success: true,
-      message: 'Profile deleted permanently'
+      message: 'Profile deleted permanently',
     });
-
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Delete profile error:', err);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Delete failed. Please try again.'
+      error: 'Delete failed. Please try again.',
     });
   } finally {
     client.release();
   }
 };
 
+// ======================================================
 // GET USER BY ID
+// ======================================================
 const getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
     console.log('Fetching user by ID:', userId);
-    
-    const result = await pool.query(`
+
+    const result = await pool.query(
+      `
       SELECT 
         u.user_id, 
         u.name, 
@@ -384,7 +468,9 @@ const getUserById = async (req, res) => {
       LEFT JOIN alumni_profiles ap ON u.user_id = ap.user_id
       LEFT JOIN student_profiles sp ON u.user_id = sp.user_id
       WHERE u.user_id = $1
-    `, [userId]);
+    `,
+      [userId]
+    );
 
     console.log('Database result:', result.rows[0]);
 
@@ -393,7 +479,7 @@ const getUserById = async (req, res) => {
     }
 
     const userData = result.rows[0];
-    
+
     let profile = {
       id: userData.user_id,
       name: userData.name,
@@ -401,7 +487,7 @@ const getUserById = async (req, res) => {
       role: userData.role,
       angkatan: userData.angkatan,
       fakultas: userData.fakultas,
-      createdAt: userData.created_at
+      createdAt: userData.created_at,
     };
 
     if (userData.role === 'alumni') {
@@ -430,19 +516,18 @@ const getUserById = async (req, res) => {
 
     res.json({
       success: true,
-      user: profile
+      user: profile,
     });
-
   } catch (err) {
     console.error('Get user by ID error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-module.exports = { 
-  getUserProfile, 
-  getAllUsers, 
-  updateUserProfile, 
+module.exports = {
+  getUserProfile,
+  getAllUsers,
+  updateUserProfile,
   deleteUserProfile,
-  getUserById
+  getUserById,
 };

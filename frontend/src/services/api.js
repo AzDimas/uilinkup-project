@@ -38,6 +38,7 @@ export const connectionAPI = {
   getPendingRequests: () => api.get('/connections/pending-requests'),
   getSentRequests: () => api.get('/connections/sent-requests'),
   getConnectionStats: () => api.get('/connections/stats'),
+  getStatsByUserId: (userId) => api.get(`/connections/stats/${userId}`),
   acceptConnection: (connectionId) =>
     api.put(`/connections/${connectionId}/accept`),
   rejectConnection: (connectionId) =>
