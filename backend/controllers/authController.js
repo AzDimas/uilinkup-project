@@ -44,7 +44,7 @@ const register = async (req, res) => {
       );
     }
 
-    // Return user data - TAMBAHKAN created_at
+    // Data user untuk frontend
     const userResponse = {
       id: user.user_id,
       name: user.name,
@@ -52,22 +52,26 @@ const register = async (req, res) => {
       role: user.role,
       angkatan: user.angkatan,
       fakultas: user.fakultas,
-      createdAt: user.created_at  // ✅ TAMBAH INI
+      createdAt: user.created_at,
     };
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.user_id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // 🔑 Payload JWT – PAKAI user_id (bukan userId)
+    const payload = {
+      user_id: user.user_id,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Generate JWT token pakai payload
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
 
     res.status(201).json({
       message: 'User berhasil dibuat',
       token,
-      user: userResponse
+      user: userResponse,
     });
-
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -92,12 +96,12 @@ const login = async (req, res) => {
 
     const user = result.rows[0];
     const isMatch = await bcrypt.compare(password, user.password_hash);
-    
+
     if (!isMatch) {
       return res.status(400).json({ error: 'Email atau password salah' });
     }
 
-    // Get full profile data based on role - TAMBAHKAN created_at
+    // Data dasar user
     let fullUserData = {
       id: user.user_id,
       name: user.name,
@@ -105,10 +109,10 @@ const login = async (req, res) => {
       role: user.role,
       angkatan: user.angkatan,
       fakultas: user.fakultas,
-      createdAt: user.created_at  // ✅ TAMBAH INI
+      createdAt: user.created_at,
     };
 
-    // Get additional profile data based on role
+    // Tambahan data profil berdasarkan role
     if (user.role === 'alumni') {
       const alumniResult = await pool.query(
         `SELECT bio, skills, current_job, company, industry, location, 
@@ -139,19 +143,23 @@ const login = async (req, res) => {
       }
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.user_id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // 🔑 Payload JWT – konsisten pakai user_id
+    const payload = {
+      user_id: user.user_id,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Generate JWT token pakai payload (INI YANG PENTING)
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
 
     res.json({
       message: 'Login berhasil',
       token,
-      user: fullUserData
+      user: fullUserData,
     });
-
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error' });
