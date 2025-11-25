@@ -1,8 +1,23 @@
-// src/pages/GroupPostDetail.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import './GroupPostDetail.css';
+
+const getInitials = (name) => {
+  return name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+};
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 export default function GroupPostPage() {
   const { groupId, postId } = useParams();
@@ -20,7 +35,6 @@ export default function GroupPostPage() {
   const [replyContent, setReplyContent] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
 
-  // myRole tidak lagi dipakai untuk Mark as Answer, tapi boleh tetap untuk future features
   const [myRole, setMyRole] = useState(null);
 
   const fetchPost = async () => {
@@ -91,123 +105,335 @@ export default function GroupPostPage() {
     }
   };
 
-  if (loading) return <div className="p-4">Loading post...</div>;
-  if (!post) return <div className="p-4">Post not found.</div>;
+  // Render floating particles
+  const renderParticles = () => {
+    const particles = [];
+    for (let i = 0; i < 8; i++) {
+      particles.push(
+        <div
+          key={i}
+          className="group-post-detail-particle"
+          style={{
+            width: `${Math.random() * 10 + 4}px`,
+            height: `${Math.random() * 10 + 4}px`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 6}s`,
+            background: i % 2 === 0 
+              ? `rgba(255, 193, 7, ${Math.random() * 0.2 + 0.1})`
+              : `rgba(33, 150, 243, ${Math.random() * 0.2 + 0.1})`
+          }}
+        />
+      );
+    }
+    return particles;
+  };
+
+  if (loading) {
+    return (
+      <div className="group-post-detail-container">
+        {renderParticles()}
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="group-post-detail-loading"></div>
+          <span className="ml-4 text-white text-lg">Memuat postingan...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="group-post-detail-container">
+        {renderParticles()}
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="group-post-detail-empty-state">
+            <div className="text-6xl mb-4 opacity-60">❌</div>
+            <h3 className="text-xl font-semibold text-white mb-2">Postingan Tidak Ditemukan</h3>
+            <p className="text-gray-400 mb-6">
+              Postingan yang Anda cari tidak ditemukan atau mungkin telah dihapus.
+            </p>
+            <Link
+              to={`/groups/${groupId}`}
+              className="group-post-detail-gradient-btn yellow px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 inline-block"
+            >
+              ← Kembali ke Group
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const EmptyRepliesState = () => (
+    <div className="group-post-detail-empty-state">
+      <div className="text-6xl mb-4 opacity-60">💬</div>
+      <h3 className="text-xl font-semibold text-white mb-2">Belum Ada Balasan</h3>
+      <p className="text-gray-400 mb-6">
+        Jadilah yang pertama membalas postingan ini dan mulai diskusi!
+      </p>
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4">
-      {/* HEADER NAV */}
-      <div className="flex items-center justify-between text-xs text-gray-600">
-        <div className="flex gap-2">
-          <Link to="/groups" className="hover:underline text-blue-600">
-            Groups
-          </Link>
-          <span>/</span>
-          <Link
-            to={`/groups/${groupId}`}
-            className="hover:underline text-blue-600"
-          >
-            {post.group_name || 'Group'}
-          </Link>
-        </div>
-        <Link
-          to="/groups/feed"
-          className="hover:underline text-blue-600"
-        >
-          Forum Feed
-        </Link>
-      </div>
+    <div className="group-post-detail-container">
+      {/* Background Particles */}
+      {renderParticles()}
 
-      {/* POST CARD */}
-      <div className="bg-white border rounded-lg p-4">
-        <h1 className="text-xl font-semibold">{post.title}</h1>
-        <div className="mt-1 text-xs text-gray-500 flex flex-wrap gap-2 items-center">
-          <span>
-            By{' '}
-            <Link
-              to={`/profile/${post.author_id}`}
-              className="font-medium text-blue-600 hover:underline"
-            >
-              {post.author_name}
-            </Link>
-          </span>
-          <span>•</span>
-          <span>
-            {post.created_at ? new Date(post.created_at).toLocaleString() : ''}
-          </span>
-          {post.faculty && (
-            <>
-              <span>•</span>
-              <span>Faculty: {post.faculty}</span>
-            </>
-          )}
-        </div>
-        <div className="mt-4 text-sm text-gray-800 whitespace-pre-wrap">
-          {post.content}
-        </div>
-        <div className="mt-3 text-xs text-gray-500">
-          Replies: {post.reply_count ?? 0}
-        </div>
-      </div>
+      {/* Floating Elements */}
+      <div className="absolute top-1/4 left-1/4 w-24 h-24 bg-yellow-500 rounded-full opacity-20 group-post-detail-floating-element"></div>
+      <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-blue-500 rounded-full opacity-20 group-post-detail-floating-element"></div>
+      <div className="absolute bottom-1/4 left-1/3 w-22 h-22 bg-blue-400 rounded-full opacity-20 group-post-detail-floating-element"></div>
 
-      {/* REPLY FORM */}
-      <div className="bg-white border rounded-lg p-4">
-        <h2 className="text-sm font-semibold mb-2">Add Reply</h2>
-        <form onSubmit={handleSendReply} className="space-y-2">
-          <textarea
-            className="w-full border rounded px-2 py-1 text-sm"
-            rows={4}
-            placeholder="Tulis jawaban / diskusi kamu di sini..."
-            value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
-          />
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={sendingReply}
-              className="px-4 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
-            >
-              {sendingReply ? 'Sending...' : 'Post Reply'}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* REPLIES LIST */}
-      <div className="bg-white border rounded-lg p-4">
-        <h2 className="text-sm font-semibold mb-3">Replies</h2>
-        {loadingReplies ? (
-          <div className="text-xs text-gray-500">Loading replies...</div>
-        ) : replies.length === 0 ? (
-          <div className="text-xs text-gray-500">Belum ada reply.</div>
-        ) : (
-          <div className="space-y-3">
-            {replies.map((r) => (
-              <div
-                key={r.reply_id}
-                className="border rounded p-3 text-sm border-gray-200"
+      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-4xl mx-auto">
+          {/* Header Navigation */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              <Link
+                to="/groups"
+                className="group-post-detail-action-btn blue px-4 py-2 flex items-center gap-2"
               >
-                <div className="flex justify-between items-start gap-2">
-                  <div className="text-xs text-gray-600">
-                    <Link
-                      to={`/profile/${r.author_id}`}
-                      className="font-medium text-blue-600 hover:underline"
-                    >
-                      {r.author_name}
-                    </Link>{' '}
-                    •{' '}
-                    {r.created_at
-                      ? new Date(r.created_at).toLocaleString()
-                      : ''}
+                <span>←</span>
+                <span>Groups</span>
+              </Link>
+              
+              <Link
+                to={`/groups/${groupId}`}
+                className="group-post-detail-action-btn green px-4 py-2 flex items-center gap-2"
+              >
+                <span>📋</span>
+                <span>{post.group_name || 'Group'}</span>
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="group-post-detail-badge blue flex items-center gap-1">
+                <span>💬</span>
+                <span>{post.reply_count ?? 0} Balasan</span>
+              </span>
+              {post.is_pinned && (
+                <span className="group-post-detail-badge yellow flex items-center gap-1">
+                  <span>📌</span>
+                  <span>Pinned</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Main Post Card */}
+          <div className="group-post-detail-section-card">
+            {/* Post Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-white mb-4 group-post-detail-gradient-text-blue-yellow">
+                  {post.title}
+                </h1>
+                
+                <div className="flex items-center gap-4 text-gray-300 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="group-post-detail-avatar text-sm">
+                      {getInitials(post.author_name)}
+                    </div>
+                    <div>
+                      <Link
+                        to={`/profile/${post.author_id}`}
+                        className="font-semibold text-white hover:text-blue-400 transition-colors"
+                      >
+                        {post.author_name}
+                      </Link>
+                      <div className="text-sm text-gray-400">
+                        {post.created_at ? formatDate(post.created_at) : ''}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-2 text-gray-800 whitespace-pre-wrap">
-                  {r.content}
+                  
+                  {post.faculty && (
+                    <span className="group-post-detail-badge purple">
+                      🏫 {post.faculty}
+                    </span>
+                  )}
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Post Content */}
+            <div className="group-post-detail-post-card">
+              <div className="text-gray-300 whitespace-pre-wrap leading-relaxed text-lg">
+                {post.content}
+              </div>
+            </div>
+
+            {/* Post Stats */}
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-600">
+              <div className="flex items-center gap-6 text-sm text-gray-400">
+                <span className="flex items-center gap-2">
+                  <span>💬</span>
+                  <span>{post.reply_count || 0} balasan</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <span>📅</span>
+                  <span>
+                    {post.created_at 
+                      ? new Date(post.created_at).toLocaleDateString('id-ID')
+                      : ''
+                    }
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Reply Form */}
+          <div className="group-post-detail-section-card">
+            <h2 className="text-2xl font-semibold text-white mb-6 flex items-center gap-3">
+              <span>✍️</span>
+              Tambah Balasan
+            </h2>
+            
+            <div className="group-post-detail-reply-form">
+              <form onSubmit={handleSendReply} className="space-y-4">
+                <div>
+                  <label className="block text-white font-medium mb-2">
+                    Isi Balasan Anda
+                  </label>
+                  <textarea
+                    className="group-post-detail-form-textarea w-full px-4 py-3 rounded-xl"
+                    rows={6}
+                    placeholder="Tulis jawaban atau pendapat Anda mengenai postingan ini..."
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={sendingReply || !replyContent.trim()}
+                    className="group-post-detail-gradient-btn green px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingReply ? (
+                      <>
+                        <div className="group-post-detail-loading"></div>
+                        <span>Mengirim...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🚀</span>
+                        <span>Kirim Balasan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Replies Section */}
+          <div className="group-post-detail-section-card">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
+                <span>💬</span>
+                Diskusi ({replies.length} Balasan)
+              </h2>
+              
+              <div className="group-post-detail-stats-card">
+                <div className="text-2xl font-bold text-white">{replies.length}</div>
+                <div className="text-gray-400 text-sm">Total Balasan</div>
+              </div>
+            </div>
+
+            {loadingReplies ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="group-post-detail-loading"></div>
+                <span className="ml-4 text-white text-lg">Memuat balasan...</span>
+              </div>
+            ) : replies.length === 0 ? (
+              <EmptyRepliesState />
+            ) : (
+              <div className="space-y-4">
+                {replies.map((reply, index) => (
+                  <div key={reply.reply_id} className="group-post-detail-reply-card">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="group-post-detail-avatar text-sm">
+                          {getInitials(reply.author_name)}
+                        </div>
+                        <div>
+                          <Link
+                            to={`/profile/${reply.author_id}`}
+                            className="font-semibold text-white hover:text-blue-400 transition-colors"
+                          >
+                            {reply.author_name}
+                          </Link>
+                          <div className="text-sm text-gray-400">
+                            Balasan #{index + 1} • {reply.created_at ? formatDate(reply.created_at) : ''}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {myRole === 'owner' || myRole === 'admin' ? (
+                        <span className="group-post-detail-badge blue flex items-center gap-1">
+                          <span>⭐</span>
+                          <span className="capitalize">{myRole}</span>
+                        </span>
+                      ) : reply.author_id === myId && (
+                        <span className="group-post-detail-badge green flex items-center gap-1">
+                          <span>👤</span>
+                          <span>Anda</span>
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                      {reply.content}
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-600 text-sm text-gray-400">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <span>#</span>
+                          <span>Balasan {index + 1}</span>
+                        </span>
+                      </div>
+                      
+                      <Link
+                        to={`/profile/${reply.author_id}`}
+                        className="group-post-detail-action-btn blue px-3 py-1 flex items-center gap-1 text-sm"
+                      >
+                        <span>👀</span>
+                        <span>Profil</span>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="group-post-detail-section-card text-center">
+            <h3 className="text-lg font-semibold text-white mb-3">🚀 Aksi Cepat</h3>
+            <p className="text-gray-400 mb-4">
+              Lanjutkan diskusi atau jelajahi konten lainnya
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to={`/groups/${groupId}`}
+                className="group-post-detail-action-btn green px-6 py-3 flex items-center gap-2 justify-center"
+              >
+                <span>📋</span>
+                <span>Lihat Group Lainnya</span>
+              </Link>
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="group-post-detail-action-btn blue px-6 py-3 flex items-center gap-2 justify-center"
+              >
+                <span>⬆️</span>
+                <span>Ke Atas</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

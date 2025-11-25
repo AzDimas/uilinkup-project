@@ -40,3 +40,178 @@
 .read-the-docs {
   color: #888;
 }
+
+/* index.css */
+
+/* Reset dasar */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Global layout */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+
+  /* ⛔ Matikan horizontal scroll di level global */
+  overflow-x: hidden;
+}
+
+/* Warna fallback di belakang */
+body {
+  background: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* HAPUS bounding bawaan Vite */
+#root {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: initial;
+
+  /* jaga-jaga kalau ada child yang lebarnya berlebihan */
+  overflow-x: hidden;
+}
+
+/* App.css - Additional Styles for Navbar */
+
+/* Gradient Text */
+.gradient-text-blue-yellow {
+  background: linear-gradient(135deg, #2196f3 0%, #ffc107 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Navbar Animations */
+.nav-link {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #2196f3, #ffc107);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Dropdown Animations */
+.dropdown-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.dropdown-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* User Avatar Glow */
+.user-avatar {
+  box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
+  transition: all 0.3s ease;
+}
+
+.user-avatar:hover {
+  box-shadow: 0 0 30px rgba(255, 193, 7, 0.5);
+  transform: scale(1.05);
+}
+
+/* Navbar Responsive */
+@media (max-width: 1024px) {
+  .nav-links {
+    gap: 1rem;
+  }
+  
+  .nav-link span {
+    display: none;
+  }
+  
+  .dropdown-content {
+    width: 200px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 0 1rem;
+  }
+  
+  .user-section {
+    gap: 1rem;
+  }
+}
+
+/* Scrollbar Styling for Dropdowns */
+.dropdown-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.dropdown-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #2196f3, #ffc107);
+  border-radius: 3px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #ffc107;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Neon Glow Effect */
+.neon-glow {
+  box-shadow: 
+    0 0 10px rgba(33, 150, 243, 0.5),
+    0 0 20px rgba(33, 150, 243, 0.3),
+    0 0 40px rgba(33, 150, 243, 0.1);
+}
+
+.neon-glow-yellow {
+  box-shadow: 
+    0 0 10px rgba(255, 193, 7, 0.5),
+    0 0 20px rgba(255, 193, 7, 0.3),
+    0 0 40px rgba(255, 193, 7, 0.1);
+}
+
+/* Glass Morphism */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth Transitions */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}

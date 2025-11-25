@@ -524,10 +524,60 @@ const getUserById = async (req, res) => {
   }
 };
 
+// ======================================================
+// GET USER STATS (koneksi, event diikuti, postingan)
+// ======================================================
+const getUserStats = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const { rows } = await pool.query(
+      `
+      SELECT
+        -- total koneksi: semua baris di connections yang melibatkan user ini
+        (
+          SELECT COUNT(*)::int
+          FROM connections c
+          WHERE c.user1_id = $1 OR c.user2_id = $1
+        ) AS total_connections,
+
+        -- total event yang diikuti user ini
+        (
+          SELECT COUNT(*)::int
+          FROM event_registrations er
+          WHERE er.user_id = $1
+        ) AS events_joined,
+
+        -- total postingan yang dibuat user ini
+        (
+          SELECT COUNT(*)::int
+          FROM group_posts gp
+          WHERE gp.author_id = $1
+        ) AS total_posts
+      `,
+      [userId]
+    );
+
+    const row = rows[0] || {};
+    const stats = {
+      total_connections: row.total_connections || 0,
+      events_joined: row.events_joined || 0,
+      total_posts: row.total_posts || 0,
+    };
+
+    return res.json({ stats });
+  } catch (err) {
+    console.error('Get user stats error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+
+
 module.exports = {
   getUserProfile,
   getAllUsers,
   updateUserProfile,
   deleteUserProfile,
   getUserById,
+  getUserStats,
 };

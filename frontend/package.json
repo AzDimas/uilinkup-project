@@ -13,7 +13,9 @@
     "axios": "^1.13.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.5"
+    "react-router-dom": "^7.9.5",
+    "framer-motion": "^10.16.4",
+    "lucide-react": "^0.288.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

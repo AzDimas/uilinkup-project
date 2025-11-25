@@ -1,8 +1,8 @@
-// src/pages/Dashboard.jsx
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { connectionAPI, eventsAPI } from '../services/api';
+import './Dashboard.css';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -37,13 +37,8 @@ const Dashboard = () => {
         }).catch(() => ({ data: { items: [] } })),
       ]);
 
-      // Koneksi
       const connections = connectionsRes.data?.connections || connectionsRes.data || [];
-
-      // Event diikuti
       const registeredEvents = eventsRes.data?.items || eventsRes.data?.events || [];
-
-      // Postingan: filter hanya yang author_id = userId
       const posts = postsRes.data?.items || [];
       const myPosts = posts.filter((p) => {
         const authorId = p.author_id || p.authorId;
@@ -68,42 +63,31 @@ const Dashboard = () => {
   const fetchPreview = async () => {
     setLoadingPreview(true);
     try {
-      // Coba dengan endpoint yang lebih sederhana dulu
       const [jobsRes, eventsRes, feedRes] = await Promise.all([
         api.get('/jobs?page=1&limit=3').catch(() => ({ data: { items: [] } })),
         api.get('/events?page=1&limit=3').catch(() => ({ data: { items: [] } })),
         api.get('/groups/posts/feed?page=1&limit=3').catch(() => ({ data: { items: [] } }))
       ]);
 
-      console.log('Jobs Response:', jobsRes.data);
-      console.log('Events Response:', eventsRes.data);
-      console.log('Feed Response:', feedRes.data);
-
-      // Handle berbagai struktur response
       const jobsData = jobsRes.data?.items || jobsRes.data?.data || [];
       const eventsData = eventsRes.data?.items || eventsRes.data?.data || [];
       const feedsData = feedRes.data?.items || feedRes.data?.data || [];
 
-      // Batasi hanya 3 item pertama
       setJobs(jobsData.slice(0, 3));
       
-      // Urutkan events dari yang terbaru (start_time terbesar) ke terlama dan batasi 3
       const sortedEvents = [...eventsData].sort((a, b) => 
         new Date(b.start_time || b.date) - new Date(a.start_time || a.date)
       ).slice(0, 3);
       setEvents(sortedEvents);
       
-      // Batasi feeds hanya 3 item pertama
       setFeeds(feedsData.slice(0, 3));
 
-      // Fetch stats setelah data utama selesai
       if (user?.id) {
         await fetchStats(user.id);
       }
 
     } catch (e) {
       console.error('Dashboard preview error:', e);
-      // Set empty arrays
       setJobs([]);
       setEvents([]);
       setFeeds([]);
@@ -149,13 +133,13 @@ const Dashboard = () => {
 
   const formatSourceLabel = (source) => {
     const sourceConfig = {
-      alumni: { label: 'ALUMNI', color: 'bg-blue-100 text-blue-800' },
-      student: { label: 'MAHASISWA', color: 'bg-yellow-100 text-yellow-800' },
-      job: { label: 'LOWONGAN', color: 'bg-green-100 text-green-800' },
-      event: { label: 'EVENT', color: 'bg-purple-100 text-purple-800' },
+      alumni: { label: 'ALUMNI', color: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' },
+      student: { label: 'MAHASISWA', color: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' },
+      job: { label: 'LOWONGAN', color: 'bg-green-500/20 text-green-400 border border-green-500/30' },
+      event: { label: 'EVENT', color: 'bg-purple-500/20 text-purple-400 border border-purple-500/30' },
     };
 
-    const config = sourceConfig[source] || { label: source?.toUpperCase() || '', color: 'bg-gray-100 text-gray-800' };
+    const config = sourceConfig[source] || { label: source?.toUpperCase() || '', color: 'bg-gray-500/20 text-gray-400 border border-gray-500/30' };
     return config;
   };
 
@@ -170,7 +154,6 @@ const Dashboard = () => {
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Cek jika event hari ini
       if (date.toDateString() === now.toDateString()) {
         return `Hari ini • ${date.toLocaleTimeString('id-ID', { 
           hour: '2-digit', 
@@ -178,7 +161,6 @@ const Dashboard = () => {
         })}`;
       }
 
-      // Cek jika event besok
       if (date.toDateString() === tomorrow.toDateString()) {
         return `Besok • ${date.toLocaleTimeString('id-ID', { 
           hour: '2-digit', 
@@ -211,207 +193,175 @@ const Dashboard = () => {
     navigate(`/events/${eventId}`);
   };
 
-  // Fallback data untuk testing - sudah dibatasi 3 item
-  const fallbackJobs = [
-    { id: 1, job_id: 1, title: 'Software Engineer Frontend', company: 'Tech Company Indonesia', location: 'Jakarta Selatan' },
-    { id: 2, job_id: 2, title: 'Data Scientist', company: 'Data Analytics Corp', location: 'Bandung' },
-    { id: 3, job_id: 3, title: 'Product Manager', company: 'Startup Digital', location: 'Remote' }
-  ].slice(0, 3);
-
-  const fallbackEvents = [
-    { 
-      id: 1, 
-      event_id: 1, 
-      title: 'Tech Conference & Career Fair 2024', 
-      start_time: new Date(Date.now() + 2 * 86400000).toISOString(), 
-      location: 'Jakarta Convention Center', 
-      event_type: 'seminar',
-      description: 'Konferensi teknologi terbesar tahun ini'
-    },
-    { 
-      id: 2, 
-      event_id: 2, 
-      title: 'UI Alumni Networking Night', 
-      start_time: new Date(Date.now() + 5 * 86400000).toISOString(), 
-      location: 'Hotel Indonesia Kempinski', 
-      event_type: 'networking',
-      description: 'Networking dengan alumni UI sukses'
-    },
-    { 
-      id: 3, 
-      event_id: 3, 
-      title: 'Workshop Data Science for Beginners', 
-      start_time: new Date(Date.now() + 7 * 86400000).toISOString(), 
-      location: 'Gedung Fasilkom UI', 
-      event_type: 'workshop',
-      description: 'Belajar data science dari dasar'
+  // Generate floating particles
+  const renderParticles = () => {
+    const particles = [];
+    for (let i = 0; i < 12; i++) {
+      particles.push(
+        <div
+          key={i}
+          className="dashboard-particle"
+          style={{
+            width: `${Math.random() * 15 + 5}px`,
+            height: `${Math.random() * 15 + 5}px`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 6}s`,
+            background: i % 2 === 0 
+              ? `rgba(255, 193, 7, ${Math.random() * 0.2 + 0.1})`
+              : `rgba(33, 150, 243, ${Math.random() * 0.2 + 0.1})`
+          }}
+        />
+      );
     }
-  ].slice(0, 3);
-
-  const fallbackFeeds = [
-    { 
-      post_id: 1, 
-      title: 'Tips Membangun Karir di Tech Industry sebagai Fresh Graduate', 
-      group_name: 'Tech Community', 
-      author_name: 'Budi Santoso',
-      group_id: 1
-    },
-    { 
-      post_id: 2, 
-      title: 'Pengalaman Magang di Perusahaan Multinasional - Sharing Session', 
-      group_name: 'Career Development', 
-      author_name: 'Sari Wijaya',
-      group_id: 2
-    },
-    { 
-      post_id: 3, 
-      title: 'Diskusi Tren Artificial Intelligence dan Machine Learning 2024', 
-      group_name: 'AI Enthusiasts', 
-      author_name: 'Ahmad Fauzi',
-      group_id: 3
-    }
-  ].slice(0, 3);
-
-  // Gunakan data fallback jika data utama kosong dan tidak loading
-  const displayJobs = !loadingPreview && jobs.length === 0 ? fallbackJobs : jobs.slice(0, 3);
-  const displayEvents = !loadingPreview && events.length === 0 ? fallbackEvents : events.slice(0, 3);
-  const displayFeeds = !loadingPreview && feeds.length === 0 ? fallbackFeeds : feeds.slice(0, 3);
+    return particles;
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50">
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="space-y-8">
+    <div className="dashboard-container">
+      {/* Background Particles */}
+      {renderParticles()}
+
+      {/* Floating Elements */}
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-yellow-500 rounded-full opacity-20 dashboard-floating-element"></div>
+      <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-blue-500 rounded-full opacity-20 dashboard-floating-element"></div>
+      <div className="absolute bottom-1/4 left-1/3 w-28 h-28 bg-blue-400 rounded-full opacity-20 dashboard-floating-element"></div>
+
+      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto space-y-8">
           {/* Welcome Banner */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white shadow-lg">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div className="dashboard-welcome-banner dark p-8 text-white">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
               <div className="flex-1">
-                <h2 className="text-3xl font-bold mb-3">
+                <h2 className="text-4xl font-bold mb-4 gradient-text-blue-yellow">
                   Selamat Datang di UILinkUp! 🎓
                 </h2>
-                <p className="text-blue-100 text-lg max-w-2xl">
+                <p className="text-gray-300 text-lg max-w-2xl leading-relaxed">
                   Platform eksklusif untuk menghubungkan mahasiswa dan alumni UI. 
                   {user?.role === 'alumni' && ' Bagikan pengalaman Anda dan bimbing generasi penerus.'}
                   {user?.role === 'student' && ' Temukan mentor, peluang karir, dan kembangkan jaringan profesional Anda.'}
                   {user?.role === 'admin' && ' Kelola dan pantau aktivitas platform untuk pengalaman terbaik.'}
                 </p>
               </div>
-              <div className="mt-4 md:mt-0">
-                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                  <p className="text-sm font-semibold">Status Akun</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="text-sm">Aktif & Terverifikasi</span>
+              <div className="mt-6 md:mt-0">
+                <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-4 border border-yellow-500/30 neon-glow-yellow">
+                  <p className="text-sm font-semibold text-yellow-400 mb-2">Status Akun</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-gray-300">Aktif & Terverifikasi</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Profile and Quick Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Profile Card - Diperbaiki dengan layout yang lebih simetris */}
-            <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
-              <div className="flex flex-col md:flex-row gap-6 items-start">
+          {/* Profile and Stats Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 dashboard-grid-container">
+            {/* Profile Card */}
+            <div className="lg:col-span-3 dashboard-glass-card dark p-8 text-white">
+              <div className="flex flex-col md:flex-row gap-8 items-start">
                 {/* Avatar Section */}
                 <div className="flex flex-col items-center md:items-start gap-4">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center text-white font-bold text-3xl shadow-lg">
-                    {initial}
+                  <div className="dashboard-logo-container">
+                    <div className="dashboard-logo-glow"></div>
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center text-white font-bold text-4xl shadow-xl relative z-10 neon-glow-yellow">
+                      {initial}
+                    </div>
                   </div>
                   <div className="text-center md:text-left">
-                    <div className="flex items-center gap-1 text-green-600 mb-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs font-medium">Online</span>
+                    <div className="flex items-center gap-2 text-green-400 mb-1">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">Online</span>
                     </div>
-                    <div className="text-xs text-gray-500">Status: Aktif</div>
+                    <div className="text-xs text-gray-400">Status: Aktif</div>
                   </div>
                 </div>
 
-                {/* Profile Info Section */}
+                {/* Profile Info */}
                 <div className="flex-1">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-3">{user?.name || 'User'}</h3>
+                      <h3 className="text-3xl font-bold text-white mb-4">{user?.name || 'User'}</h3>
                       
-                      {/* Badges Row */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <span className="px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                      {/* Badges */}
+                      <div className="flex flex-wrap gap-3 mb-6">
+                        <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-sm font-semibold flex items-center gap-2">
+                          <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
                           {user?.role || 'Member'}
                         </span>
                         {user?.fakultas && (
-                          <span className="px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-700 text-sm font-semibold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                          <span className="px-4 py-2 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-sm font-semibold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
                             {user.fakultas}
                           </span>
                         )}
                         {user?.angkatan && (
-                          <span className="px-3 py-1.5 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                          <span className="px-4 py-2 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 text-sm font-semibold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
                             Angkatan {user.angkatan}
                           </span>
                         )}
                       </div>
 
                       {/* Contact Info */}
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {user?.email && (
-                          <div className="flex items-center gap-3 text-gray-700">
-                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="flex items-center gap-4 text-gray-300">
+                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/30">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
                                 <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
                               </svg>
                             </div>
                             <div>
-                              <div className="text-sm font-medium">Email</div>
-                              <div className="text-sm text-gray-600">{user.email}</div>
+                              <div className="text-sm font-medium text-white">Email</div>
+                              <div className="text-sm text-gray-400">{user.email}</div>
                             </div>
                           </div>
                         )}
                         
                         {/* Join Date */}
-                        <div className="flex items-center gap-3 text-gray-700">
-                          <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <div className="flex items-center gap-4 text-gray-300">
+                          <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400 border border-green-500/30">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
                             </svg>
                           </div>
                           <div>
-                            <div className="text-sm font-medium">Bergabung</div>
-                            <div className="text-sm text-gray-600">{joinedAtText}</div>
+                            <div className="text-sm font-medium text-white">Bergabung</div>
+                            <div className="text-sm text-gray-400">{joinedAtText}</div>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Action Button dan Stats */}
-                    <div className="flex flex-col gap-4 min-w-[200px]">
+                    <div className="flex flex-col gap-6 min-w-[220px]">
                       <button
                         onClick={() => navigate('/profile')}
-                        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                        className="dashboard-gradient-btn yellow px-8 py-4 text-black rounded-2xl font-semibold transition-all duration-200 shadow-lg flex items-center justify-center gap-3"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         Kelola Profil
                       </button>
                       
-                      {/* Quick Stats - Diperbaiki */}
-                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-                        <div className="text-sm font-semibold text-gray-900 mb-3 text-center">Statistik</div>
-                        <div className="space-y-2">
+                      {/* Quick Stats */}
+                      <div className="dashboard-stats-card dark">
+                        <div className="text-sm font-semibold text-white mb-4 text-center">Statistik</div>
+                        <div className="space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-600">Koneksi</span>
-                            <span className="text-sm font-bold text-blue-600">{stats.totalConnections}</span>
+                            <span className="text-sm text-gray-400">Koneksi</span>
+                            <span className="text-lg font-bold text-blue-400">{stats.totalConnections}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-600">Event Diikuti</span>
-                            <span className="text-sm font-bold text-green-600">{stats.eventsJoined}</span>
+                            <span className="text-sm text-gray-400">Event Diikuti</span>
+                            <span className="text-lg font-bold text-green-400">{stats.eventsJoined}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-600">Postingan</span>
-                            <span className="text-sm font-bold text-purple-600">{stats.totalPosts}</span>
+                            <span className="text-sm text-gray-400">Postingan</span>
+                            <span className="text-lg font-bold text-purple-400">{stats.totalPosts}</span>
                           </div>
                         </div>
                       </div>
@@ -422,92 +372,92 @@ const Dashboard = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Akses Cepat</h3>
-              <div className="space-y-3">
+            <div className="dashboard-glass-card dark p-6">
+              <h3 className="text-xl font-bold text-white mb-6">Akses Cepat</h3>
+              <div className="space-y-4">
                 <Link
                   to="/jobs"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-blue-100 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 group"
+                  className="dashboard-quick-action dark flex items-center gap-4 p-4 transition-all duration-200 group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-200 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 text-lg group-hover:scale-110 transition-transform border border-blue-500/30">
                     🔍
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">Cari Lowongan</p>
-                    <p className="text-xs text-gray-600">Kerja & Magang</p>
+                    <p className="font-semibold text-white">Cari Lowongan</p>
+                    <p className="text-sm text-gray-400">Kerja & Magang</p>
                   </div>
                 </Link>
                 <Link
                   to="/events"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-blue-100 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 group"
+                  className="dashboard-quick-action dark flex items-center gap-4 p-4 transition-all duration-200 group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600 group-hover:bg-yellow-200 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-lg group-hover:scale-110 transition-transform border border-yellow-500/30">
                     📅
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">Event & Webinar</p>
-                    <p className="text-xs text-gray-600">Acara Terkini</p>
+                    <p className="font-semibold text-white">Event & Webinar</p>
+                    <p className="text-sm text-gray-400">Acara Terkini</p>
                   </div>
                 </Link>
                 <Link
                   to="/groups/feed"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-blue-100 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 group"
+                  className="dashboard-quick-action dark flex items-center gap-4 p-4 transition-all duration-200 group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600 group-hover:bg-green-200 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400 text-lg group-hover:scale-110 transition-transform border border-green-500/30">
                     💬
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">Forum Diskusi</p>
-                    <p className="text-xs text-gray-600">Komunitas UI</p>
+                    <p className="font-semibold text-white">Forum Diskusi</p>
+                    <p className="text-sm text-gray-400">Komunitas UI</p>
                   </div>
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* Preview Sections - MAKSIMAL 3 ITEM */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Jobs Preview - Maksimal 3 */}
-            <div className="bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
+          {/* Preview Sections */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-preview-grid">
+            {/* Jobs Preview */}
+            <div className="dashboard-glass-card dark p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Lowongan Terbaru</h3>
+                <h3 className="text-xl font-bold text-white">Lowongan Terbaru</h3>
                 <Link
                   to="/jobs"
-                  className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1"
+                  className="text-blue-400 hover:text-blue-300 font-semibold text-sm flex items-center gap-2 transition-all duration-200"
                 >
                   Lihat Semua
-                  <span>→</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </Link>
               </div>
               {loadingPreview ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div key={i} className="dashboard-loading-pulse">
+                      <div className="h-4 bg-gray-600 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-600 rounded w-3/4"></div>
                     </div>
                   ))}
                 </div>
-              ) : displayJobs.length === 0 ? (
+              ) : jobs.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-gray-400 text-4xl mb-2">💼</div>
+                  <div className="text-gray-500 text-4xl mb-3">💼</div>
                   <p className="text-gray-500 text-sm">Belum ada lowongan terbaru</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {displayJobs.map((job) => (
+                  {jobs.slice(0, 3).map((job) => (
                     <div
                       key={job.job_id || job.id}
-                      className="p-4 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all duration-200 group cursor-pointer"
+                      className="dashboard-preview-item dark p-4 transition-all duration-200 group cursor-pointer"
                       onClick={() => navigate(`/jobs/${job.job_id || job.id}`)}
                     >
-                      <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                      <h4 className="font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
                         {job.title}
                       </h4>
-                      <p className="text-sm text-gray-600 mt-1">{job.company}</p>
+                      <p className="text-sm text-gray-400 mt-1">{job.company}</p>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xs text-gray-500">{job.location}</span>
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full border border-blue-500/30">
                           Baru
                         </span>
                       </div>
@@ -517,35 +467,35 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Events Preview - Maksimal 3 */}
-            <div className="bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
+            {/* Events Preview */}
+            <div className="dashboard-glass-card dark p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Event Mendatang</h3>
+                <h3 className="text-xl font-bold text-white">Event Mendatang</h3>
                 <Link
                   to="/events"
-                  className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1"
+                  className="text-blue-400 hover:text-blue-300 font-semibold text-sm flex items-center gap-2 transition-all duration-200"
                 >
                   Lihat Semua
-                  <span>→</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </Link>
               </div>
               {loadingPreview ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div key={i} className="dashboard-loading-pulse">
+                      <div className="h-4 bg-gray-600 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-600 rounded w-3/4"></div>
                     </div>
                   ))}
                 </div>
-              ) : displayEvents.length === 0 ? (
+              ) : events.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-gray-400 text-4xl mb-2">📅</div>
+                  <div className="text-gray-500 text-4xl mb-3">📅</div>
                   <p className="text-gray-500 text-sm">Belum ada event terjadwal</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {displayEvents.map((event) => {
+                  {events.slice(0, 3).map((event) => {
                     const isUpcoming = isUpcomingEvent(event.start_time);
                     const isToday = new Date(event.start_time).toDateString() === new Date().toDateString();
                     const eventId = event.event_id || event.id;
@@ -553,46 +503,46 @@ const Dashboard = () => {
                     return (
                       <div
                         key={eventId}
-                        className={`p-4 rounded-xl border transition-all duration-200 group cursor-pointer ${
+                        className={`dashboard-preview-item dark p-4 transition-all duration-200 group cursor-pointer ${
                           isToday 
-                            ? 'border-yellow-300 bg-yellow-50 hover:bg-yellow-100' 
+                            ? 'border-yellow-500/50 bg-yellow-500/10' 
                             : isUpcoming
-                            ? 'border-green-200 bg-green-50 hover:bg-green-100'
-                            : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                            ? 'border-green-500/50 bg-green-500/10'
+                            : 'border-gray-500/30'
                         }`}
                         onClick={() => handleEventClick(eventId)}
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-semibold text-gray-900 line-clamp-2 flex-1 group-hover:text-blue-600 transition-colors">
+                          <h4 className="font-semibold text-white line-clamp-2 flex-1 group-hover:text-blue-400 transition-colors">
                             {event.title}
                           </h4>
                           {isToday && (
-                            <span className="ml-2 px-2 py-1 bg-yellow-500 text-white text-xs rounded-full whitespace-nowrap">
+                            <span className="ml-2 px-2 py-1 bg-yellow-500 text-black text-xs rounded-full whitespace-nowrap font-semibold">
                               Hari Ini
                             </span>
                           )}
                           {isUpcoming && !isToday && (
-                            <span className="ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full whitespace-nowrap">
+                            <span className="ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full whitespace-nowrap font-semibold">
                               Mendatang
                             </span>
                           )}
                         </div>
                         
-                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">
                           <span>📅</span>
                           <span className="text-xs font-medium">
                             {formatEventDate(event.start_time)}
                           </span>
                         </div>
                         
-                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-400">
                           <span>📍</span>
                           <span className="text-xs">{event.location}</span>
                         </div>
 
                         {event.event_type && (
                           <div className="mt-2">
-                            <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            <span className="inline-block px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
                               {event.event_type.replace('_', ' ').toUpperCase()}
                             </span>
                           </div>
@@ -604,48 +554,48 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Forum Feed Preview - Maksimal 3 */}
-            <div className="bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
+            {/* Forum Feed Preview */}
+            <div className="dashboard-glass-card dark p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Diskusi Terbaru</h3>
+                <h3 className="text-xl font-bold text-white">Diskusi Terbaru</h3>
                 <Link
                   to="/groups/feed"
-                  className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1"
+                  className="text-blue-400 hover:text-blue-300 font-semibold text-sm flex items-center gap-2 transition-all duration-200"
                 >
                   Lihat Semua
-                  <span>→</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </Link>
               </div>
               {loadingPreview ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div key={i} className="dashboard-loading-pulse">
+                      <div className="h-4 bg-gray-600 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-600 rounded w-3/4"></div>
                     </div>
                   ))}
                 </div>
-              ) : displayFeeds.length === 0 ? (
+              ) : feeds.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-gray-400 text-4xl mb-2">💬</div>
+                  <div className="text-gray-500 text-4xl mb-3">💬</div>
                   <p className="text-gray-500 text-sm">Belum ada diskusi terbaru</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {displayFeeds.map((post) => (
+                  {feeds.slice(0, 3).map((post) => (
                     <div
                       key={post.post_id}
-                      className="p-4 rounded-xl border border-gray-100 hover:border-green-200 hover:bg-green-50 transition-all duration-200 group cursor-pointer"
+                      className="dashboard-preview-item dark p-4 transition-all duration-200 group cursor-pointer"
                       onClick={() => navigate(`/groups/${post.group_id}/posts/${post.post_id}`)}
                     >
-                      <h4 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors line-clamp-2">
+                      <h4 className="font-semibold text-white group-hover:text-green-400 transition-colors line-clamp-2">
                         {post.title}
                       </h4>
                       <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                        <span className="bg-gray-100 px-2 py-1 rounded-full">
+                        <span className="bg-gray-500/20 px-2 py-1 rounded-full border border-gray-500/30">
                           {post.group_name}
                         </span>
-                        <span>Oleh: {post.author_name}</span>
+                        <span className="text-gray-400">Oleh: {post.author_name}</span>
                       </div>
                     </div>
                   ))}
@@ -655,34 +605,34 @@ const Dashboard = () => {
           </div>
 
           {/* AI Career Assistant */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-xl">
-            <div className="flex items-start justify-between mb-6">
+          <div className="dashboard-ai-section p-8 text-white">
+            <div className="flex items-start justify-between mb-8 relative z-10">
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-2xl font-bold">AI Career Assistant</h3>
-                  <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">
+                <div className="flex items-center gap-4 mb-3">
+                  <h3 className="text-3xl font-bold gradient-text-blue-yellow">AI Career Assistant</h3>
+                  <span className="px-4 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-semibold border border-yellow-500/30">
                     BETA
                   </span>
                 </div>
-                <p className="text-blue-100 text-lg">
+                <p className="text-blue-200 text-lg">
                   Temukan alumni, mentor, dan peluang karir dengan bantuan AI
                 </p>
               </div>
-              <div className="text-3xl">🤖</div>
+              <div className="text-4xl">🤖</div>
             </div>
 
             {/* Quick Questions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 relative z-10">
               <button
                 onClick={() => {
                   const text = 'Alumni yang bekerja sebagai backend engineer di Jakarta';
                   setAiInput(text);
                   runAiSearch(text);
                 }}
-                className="p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 text-left group"
+                className="p-5 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 text-left group backdrop-blur-sm border border-white/10 hover:border-yellow-500/30"
               >
-                <div className="text-sm font-semibold mb-1">🔍 Cari Alumni</div>
-                <p className="text-xs text-blue-200 opacity-90 group-hover:opacity-100">
+                <div className="text-base font-semibold mb-2 text-yellow-400">🔍 Cari Alumni</div>
+                <p className="text-sm text-blue-200 opacity-90 group-hover:opacity-100">
                   "Alumni backend engineer di Jakarta"
                 </p>
               </button>
@@ -692,10 +642,10 @@ const Dashboard = () => {
                   setAiInput(text);
                   runAiSearch(text);
                 }}
-                className="p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 text-left group"
+                className="p-5 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 text-left group backdrop-blur-sm border border-white/10 hover:border-blue-500/30"
               >
-                <div className="text-sm font-semibold mb-1">👥 Temukan Mentor</div>
-                <p className="text-xs text-blue-200 opacity-90 group-hover:opacity-100">
+                <div className="text-base font-semibold mb-2 text-blue-400">👥 Temukan Mentor</div>
+                <p className="text-sm text-blue-200 opacity-90 group-hover:opacity-100">
                   "Rekomendasi mentor data science"
                 </p>
               </button>
@@ -705,26 +655,26 @@ const Dashboard = () => {
                   setAiInput(text);
                   runAiSearch(text);
                 }}
-                className="p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 text-left group"
+                className="p-5 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 text-left group backdrop-blur-sm border border-white/10 hover:border-green-500/30"
               >
-                <div className="text-sm font-semibold mb-1">📅 Event Terkini</div>
-                <p className="text-xs text-blue-200 opacity-90 group-hover:opacity-100">
+                <div className="text-base font-semibold mb-2 text-green-400">📅 Event Terkini</div>
+                <p className="text-sm text-blue-200 opacity-90 group-hover:opacity-100">
                   "Event tech bulan ini"
                 </p>
               </button>
             </div>
 
             {/* Search Input */}
-            <div className="bg-white rounded-2xl p-2 shadow-lg">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 relative z-10 border border-white/10">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   runAiSearch();
                 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-3"
               >
                 <input
-                  className="flex-1 px-4 py-3 text-gray-800 outline-none border-none bg-transparent text-sm"
+                  className="flex-1 px-5 py-4 text-white outline-none border-none bg-transparent text-base placeholder-blue-200"
                   placeholder="Tanyakan apapun tentang karir, alumni, atau event..."
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
@@ -732,11 +682,11 @@ const Dashboard = () => {
                 <button
                   type="submit"
                   disabled={aiLoading}
-                  className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-xl font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+                  className="dashboard-gradient-btn yellow px-8 py-4 text-black rounded-xl font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 flex items-center gap-3"
                 >
                   {aiLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
                       <span>Memproses...</span>
                     </>
                   ) : (
@@ -751,8 +701,8 @@ const Dashboard = () => {
 
             {/* Error Message */}
             {aiError && (
-              <div className="mt-4 p-4 bg-red-500/20 border border-red-400 rounded-xl">
-                <div className="flex items-center gap-2 text-red-200">
+              <div className="mt-6 p-4 bg-red-500/20 border border-red-400 rounded-xl backdrop-blur-sm relative z-10">
+                <div className="flex items-center gap-3 text-red-200">
                   <span>⚠️</span>
                   <span className="text-sm">{aiError}</span>
                 </div>
@@ -761,44 +711,44 @@ const Dashboard = () => {
 
             {/* AI Results */}
             {aiAnswer && (
-              <div className="mt-6 bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="font-semibold">Hasil Pencarian AI</span>
+              <div className="mt-8 bg-white/10 rounded-2xl p-6 backdrop-blur-sm relative z-10 border border-white/10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="font-semibold text-lg text-yellow-400">Hasil Pencarian AI</span>
                 </div>
                 
-                <div className="bg-white/5 rounded-xl p-4 mb-4">
-                  <p className="text-sm">{aiAnswer.message}</p>
+                <div className="bg-white/5 rounded-xl p-5 mb-6 border border-white/10">
+                  <p className="text-base text-white">{aiAnswer.message}</p>
                 </div>
 
                 {aiAnswer.results?.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {aiAnswer.results.map((result, idx) => {
                       const sourceConfig = formatSourceLabel(result.source);
                       return (
                         <div
                           key={idx}
-                          className="bg-white/5 rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-200"
+                          className="bg-white/5 rounded-xl p-5 border border-white/10 hover:border-yellow-500/30 transition-all duration-200 backdrop-blur-sm"
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sourceConfig.color}`}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${sourceConfig.color}`}>
                                 {sourceConfig.label}
                               </span>
                               {typeof result.score === 'number' && (
-                                <span className="text-xs text-blue-200">
+                                <span className="text-sm text-yellow-400">
                                   {Math.round(result.score * 100)}% match
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          <h4 className="font-semibold text-white text-sm mb-2">
+                          <h4 className="font-semibold text-white text-base mb-3">
                             {result.name || result.title || 'Tidak ada nama'}
                           </h4>
 
                           {(result.title || result.context) && (
-                            <p className="text-xs text-blue-200 mb-2">
+                            <p className="text-sm text-blue-200 mb-3">
                               {result.title && <span>{result.title}</span>}
                               {result.title && result.context && <span> • </span>}
                               {result.context && <span>{result.context}</span>}
@@ -806,7 +756,7 @@ const Dashboard = () => {
                           )}
 
                           {(result.fakultas || result.angkatan) && (
-                            <div className="text-xs text-blue-200 mb-1">
+                            <div className="text-sm text-blue-200 mb-2">
                               {result.fakultas && <span>Fakultas {result.fakultas}</span>}
                               {result.fakultas && result.angkatan && <span> • </span>}
                               {result.angkatan && <span>Angkatan {result.angkatan}</span>}
@@ -814,7 +764,7 @@ const Dashboard = () => {
                           )}
 
                           {(result.ipk || result.semester) && (
-                            <div className="text-xs text-blue-200 mb-1">
+                            <div className="text-sm text-blue-200 mb-2">
                               {result.ipk && <span>IPK: {result.ipk}</span>}
                               {result.ipk && result.semester && <span> • </span>}
                               {result.semester && <span>Semester {result.semester}</span>}
@@ -822,13 +772,13 @@ const Dashboard = () => {
                           )}
 
                           {result.interest && result.interest.length > 0 && (
-                            <div className="text-xs text-blue-200 mb-2">
+                            <div className="text-sm text-blue-200 mb-3">
                               Minat: {result.interest.join(', ')}
                             </div>
                           )}
 
                           {result.bio && (
-                            <p className="text-xs text-blue-200 line-clamp-2">
+                            <p className="text-sm text-blue-200 line-clamp-2">
                               {result.bio}
                             </p>
                           )}
@@ -841,7 +791,7 @@ const Dashboard = () => {
             )}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

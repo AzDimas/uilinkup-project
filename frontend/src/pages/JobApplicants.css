@@ -1,0 +1,412 @@
+/* JobApplicants.css - Black, Yellow, Blue & White Theme */
+.jobapplicants-container {
+  min-height: 100vh;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  background: linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%);
+  position: relative;
+  overflow-x: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.jobapplicants-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(255, 193, 7, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(33, 150, 243, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  animation: float 8s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(1deg); }
+}
+
+.jobapplicants-glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 24px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.jobapplicants-glass-card.dark {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 193, 7, 0.1);
+}
+
+.jobapplicants-gradient-btn {
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 50%, #ffc107 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  color: #000000;
+  font-weight: 600;
+}
+
+.jobapplicants-gradient-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
+}
+
+.jobapplicants-gradient-btn:hover::before {
+  left: 100%;
+}
+
+.jobapplicants-gradient-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px -10px rgba(33, 150, 243, 0.5);
+}
+
+.jobapplicants-gradient-btn.yellow {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 50%, #2196f3 100%);
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.jobapplicants-applicant-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.jobapplicants-applicant-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 193, 7, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.jobapplicants-applicant-card:hover::before {
+  left: 100%;
+}
+
+.jobapplicants-applicant-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 15px 30px -10px rgba(255, 193, 7, 0.3);
+}
+
+.jobapplicants-applicant-card.dark {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(33, 150, 243, 0.2);
+  color: #ffffff;
+}
+
+.jobapplicants-applicant-card.dark:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: #ffc107;
+}
+
+.jobapplicants-badge {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.jobapplicants-badge.blue {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33, 150, 243, 0.3);
+  color: #90caf9;
+}
+
+.jobapplicants-badge.yellow {
+  background: rgba(255, 193, 7, 0.2);
+  border-color: rgba(255, 193, 7, 0.3);
+  color: #ffd54f;
+}
+
+.jobapplicants-badge.green {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.3);
+  color: #a5d6a7;
+}
+
+.jobapplicants-badge.red {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: rgba(244, 67, 54, 0.3);
+  color: #ef9a9a;
+}
+
+.jobapplicants-badge.purple {
+  background: rgba(156, 39, 176, 0.2);
+  border-color: rgba(156, 39, 176, 0.3);
+  color: #ce93d8;
+}
+
+.jobapplicants-badge.orange {
+  background: rgba(255, 152, 0, 0.2);
+  border-color: rgba(255, 152, 0, 0.3);
+  color: #ffcc80;
+}
+
+.jobapplicants-status-btn {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+}
+
+.jobapplicants-status-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #2196f3;
+  transform: translateY(-2px);
+}
+
+.jobapplicants-status-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.jobapplicants-status-btn.review {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33, 150, 243, 0.3);
+}
+
+.jobapplicants-status-btn.interview {
+  background: rgba(255, 193, 7, 0.2);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.jobapplicants-status-btn.offered {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.jobapplicants-status-btn.hired {
+  background: rgba(105, 240, 174, 0.2);
+  border-color: rgba(105, 240, 174, 0.3);
+}
+
+.jobapplicants-status-btn.rejected {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.jobapplicants-back-btn {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+}
+
+.jobapplicants-back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #2196f3;
+  transform: translateY(-2px);
+}
+
+.jobapplicants-loading {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #2196f3;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.jobapplicants-empty-state {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.jobapplicants-empty-state:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 193, 7, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Floating Elements */
+.jobapplicants-floating-element {
+  animation: floating 3s ease-in-out infinite;
+}
+
+.jobapplicants-floating-element:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.jobapplicants-floating-element:nth-child(3) {
+  animation-delay: 2s;
+}
+
+@keyframes floating {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+/* Particles */
+.jobapplicants-particle {
+  position: absolute;
+  background: rgba(255, 193, 7, 0.15);
+  border-radius: 50%;
+  animation: particleFloat 6s ease-in-out infinite;
+}
+
+@keyframes particleFloat {
+  0%, 100% { 
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+    opacity: 0;
+  }
+  50% { 
+    transform: translateY(-100px) translateX(20px) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .jobapplicants-container {
+    padding: 1rem !important;
+  }
+  
+  .jobapplicants-applicant-card {
+    padding: 1rem !important;
+  }
+  
+  .jobapplicants-actions-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
+  
+  .jobapplicants-header {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .jobapplicants-applicant-content {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  
+  .jobapplicants-applicant-info {
+    text-align: center;
+  }
+}
+
+/* Gradient Text */
+.jobapplicants-gradient-text-blue {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.jobapplicants-gradient-text-yellow {
+  background: linear-gradient(135deg, #ffc107, #ff9800);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.jobapplicants-gradient-text-blue-yellow {
+  background: linear-gradient(135deg, #2196f3, #ffc107);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Access Denied */
+.jobapplicants-access-denied {
+  background: rgba(244, 67, 54, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Resume Link */
+.jobapplicants-resume-link {
+  color: #90caf9;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  word-break: break-all;
+}
+
+.jobapplicants-resume-link:hover {
+  color: #2196f3;
+  text-decoration: underline;
+}
+
+/* Cover Letter */
+.jobapplicants-cover-letter {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* Stats Cards */
+.jobapplicants-stats-card {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.jobapplicants-stats-card:hover {
+  border-color: rgba(33, 150, 243, 0.4);
+  transform: translateY(-2px);
+}

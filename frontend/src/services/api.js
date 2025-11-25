@@ -37,8 +37,14 @@ export const connectionAPI = {
   getMyConnections: () => api.get('/connections/my-connections'),
   getPendingRequests: () => api.get('/connections/pending-requests'),
   getSentRequests: () => api.get('/connections/sent-requests'),
+
+  // (opsional) stats global koneksi sendiri kalau backend-mu punya /connections/stats
   getConnectionStats: () => api.get('/connections/stats'),
-  getStatsByUserId: (userId) => api.get(`/connections/stats/${userId}`),
+
+  // 🔴 DULU: api.get(`/connections/stats/${userId}`)
+  // 🔵 SEKARANG: pakai endpoint baru di userRoutes → GET /users/:id/stats
+  getStatsByUserId: (userId) => api.get(`/users/${userId}/stats`),
+
   acceptConnection: (connectionId) =>
     api.put(`/connections/${connectionId}/accept`),
   rejectConnection: (connectionId) =>

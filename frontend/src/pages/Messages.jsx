@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import './Messages.css';
 
 const PAGE_SIZE = 30;
 const POLL_MS = 5000;
@@ -10,12 +11,22 @@ const POLL_MS = 5000;
 function formatTime(ts) {
   try {
     const d = new Date(ts);
-    return d.toLocaleString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      day: '2-digit',
-      month: 'short',
-    });
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const isYesterday = new Date(now.setDate(now.getDate() - 1)).toDateString() === d.toDateString();
+    
+    if (isToday) {
+      return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    } else if (isYesterday) {
+      return 'Kemarin';
+    } else {
+      return d.toLocaleDateString('id-ID', { 
+        day: 'numeric', 
+        month: 'short',
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+    }
   } catch {
     return '';
   }
@@ -31,7 +42,7 @@ const Messages = () => {
   const [loadingThreads, setLoadingThreads] = useState(true);
 
   // Active conversation
-  const [activeUser, setActiveUser] = useState(null); // { user_id, name, email }
+  const [activeUser, setActiveUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -41,16 +52,16 @@ const Messages = () => {
   const [sending, setSending] = useState(false);
 
   // Unread counts (per partner_id)
-  const [unreadMap, setUnreadMap] = useState({}); // { [userId]: number }
+  const [unreadMap, setUnreadMap] = useState({});
 
   const bottomRef = useRef(null);
   const listRef = useRef(null);
   const loadingOlderRef = useRef(false);
-  const lastScrollTsRef = useRef(0); // throttle
+  const lastScrollTsRef = useRef(0);
 
   // DEDUP & CURSOR GUARDS
-  const seenIdsRef = useRef(new Set());                 // set of message_id (number/string)
-  const loadedCursorsRef = useRef({});                  // { [partnerId]: Set<cursorString|null> }
+  const seenIdsRef = useRef(new Set());
+  const loadedCursorsRef = useRef({});
 
   const wantedId = searchParams.get('userId');
 
@@ -61,6 +72,30 @@ const Messages = () => {
   const activePartnerId = useMemo(() => {
     return activeUser?.user_id ? Number(activeUser.user_id) : null;
   }, [activeUser]);
+
+  // Render floating particles
+  const renderParticles = () => {
+    const particles = [];
+    for (let i = 0; i < 6; i++) {
+      particles.push(
+        <div
+          key={i}
+          className="messages-particle"
+          style={{
+            width: `${Math.random() * 8 + 4}px`,
+            height: `${Math.random() * 8 + 4}px`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 6}s`,
+            background: i % 2 === 0 
+              ? `rgba(255, 193, 7, ${Math.random() * 0.2 + 0.1})`
+              : `rgba(33, 150, 243, ${Math.random() * 0.2 + 0.1})`
+          }}
+        />
+      );
+    }
+    return particles;
+  };
 
   // ------- helpers -------
   const fetchUserBasic = useCallback(async (uid) => {
@@ -299,7 +334,7 @@ const Messages = () => {
   // -------- Infinite scroll (load older on top) + throttle --------
   const onScroll = useCallback(() => {
     const now = Date.now();
-    if (now - lastScrollTsRef.current < 150) return; // throttle 150ms
+    if (now - lastScrollTsRef.current < 150) return;
     lastScrollTsRef.current = now;
 
     if (!listRef.current || loadingOlderRef.current || !nextCursor || loadingMessages) return;
@@ -377,95 +412,155 @@ const Messages = () => {
     return () => el.removeEventListener('scroll', onScroll);
   }, [onScroll]);
 
-  // ✅ FIXED: no extra parenthesis here
   const isOwn = (m) => Number(m.sender_id) === Number(myId);
 
+  const EmptyThreadsState = () => (
+    <div className="messages-empty-state">
+      <div className="text-6xl mb-4 opacity-60">💬</div>
+      <h3 className="text-xl font-semibold text-white mb-2">Belum ada percakapan</h3>
+      <p className="text-gray-400 mb-6">Mulai percakapan dengan terhubung ke user lain</p>
+      <button
+        onClick={() => navigate('/users')}
+        className="messages-gradient-btn yellow px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
+      >
+        Jelajahi User
+      </button>
+    </div>
+  );
+
+  const EmptyMessagesState = () => (
+    <div className="h-full flex flex-col items-center justify-center text-gray-400 p-8">
+      <div className="text-6xl mb-4 opacity-60">👋</div>
+      <h3 className="text-xl font-semibold text-white mb-2">Mulai Percakapan</h3>
+      <p className="text-center text-gray-400 mb-4">
+        Kirim pesan pertama Anda untuk memulai percakapan dengan {activeUser?.name || 'user ini'}
+      </p>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Main */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-sm border h-[78vh] min-h-0 grid grid-cols-1 md:grid-cols-3 overflow-hidden">
+    <div className="messages-container">
+      {/* Background Particles */}
+      {renderParticles()}
+
+      {/* Floating Elements */}
+      <div className="absolute top-1/4 left-1/4 w-20 h-20 bg-yellow-500 rounded-full opacity-20 messages-floating-element"></div>
+      <div className="absolute top-1/3 right-1/4 w-16 h-16 bg-blue-500 rounded-full opacity-20 messages-floating-element"></div>
+      <div className="absolute bottom-1/4 left-1/3 w-18 h-18 bg-blue-400 rounded-full opacity-20 messages-floating-element"></div>
+
+      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto h-[80vh] min-h-0 grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Sidebar: Threads */}
-          <aside className="border-r overflow-y-auto min-h-0 h-full max-h-full overscroll-contain">
-            <div className="p-4 border-b">
+          <div className="messages-sidebar md:col-span-1 flex flex-col h-full">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-700">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Chats</h2>
+                <h2 className="text-2xl font-bold text-white messages-gradient-text-blue">
+                  Pesan
+                </h2>
                 {loadingThreads && (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600" />
+                  <div className="messages-loading"></div>
                 )}
               </div>
             </div>
 
-            {threads.length === 0 && !loadingThreads ? (
-              <div className="p-6 text-center text-gray-500">
-                Belum ada percakapan.
-              </div>
-            ) : (
-              <ul className="divide-y">
-                {threads.map((t) => {
-                  const isActive = Number(activePartnerId) === Number(t.user_id);
-                  const unread = unreadMap[Number(t.user_id)] || Number(t.unread_count) || 0;
-                  return (
-                    <li
-                      key={t.user_id}
-                      onClick={() => openConversation(t)}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 ${isActive ? 'bg-blue-50' : ''}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-medium text-gray-900">{t.name || 'User'}</div>
-                          {t.last_message && (
-                            <div className="text-sm text-gray-500 line-clamp-1">{t.last_message}</div>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          {t.last_at && (
-                            <div className="text-xs text-gray-400">{formatTime(t.last_at)}</div>
-                          )}
-                          {unread > 0 && (
-                            <span className="inline-flex items-center justify-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {unread}
-                            </span>
-                          )}
+            {/* Threads List */}
+            <div className="flex-1 min-h-0 overflow-y-auto messages-scrollable p-4">
+              {threads.length === 0 && !loadingThreads ? (
+                <EmptyThreadsState />
+              ) : (
+                <div className="space-y-3">
+                  {threads.map((t) => {
+                    const isActive = Number(activePartnerId) === Number(t.user_id);
+                    const unread = unreadMap[Number(t.user_id)] || Number(t.unread_count) || 0;
+                    return (
+                      <div
+                        key={t.user_id}
+                        onClick={() => openConversation(t)}
+                        className={`messages-thread-item p-4 cursor-pointer ${
+                          isActive ? 'active' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="messages-avatar">
+                              {String(t.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="messages-status-indicator online"></div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="font-semibold text-white truncate">
+                                {t.name || 'User'}
+                              </h3>
+                              {t.last_at && (
+                                <div className="text-xs text-gray-400 whitespace-nowrap">
+                                  {formatTime(t.last_at)}
+                                </div>
+                              )}
+                            </div>
+                            {t.last_message && (
+                              <p className="text-sm text-gray-400 line-clamp-1 mb-2">
+                                {t.last_message}
+                              </p>
+                            )}
+                            {unread > 0 && (
+                              <div className="flex justify-end">
+                                <span className="messages-badge yellow">
+                                  {unread}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </aside>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Conversation */}
-          <section className="md:col-span-2 flex flex-col h-full min-h-0 overscroll-contain">
+          <div className="messages-conversation md:col-span-3 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between">
+            <div className="p-6 border-b border-gray-700">
               {activeUser ? (
-                <>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
-                      {String(activeUser.name || 'U').charAt(0)}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="messages-avatar">
+                      {String(activeUser.name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900">{activeUser.name || 'User'}</div>
-                      <div className="text-sm text-gray-500">{activeUser.email || ''}</div>
+                      <h2 className="font-semibold text-white text-lg">
+                        {activeUser.name || 'User'}
+                      </h2>
+                      <p className="text-sm text-gray-400">{activeUser.email || ''}</p>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-sm text-gray-400">
                     {messages.length} pesan
                   </div>
-                </>
+                </div>
               ) : (
-                <div className="text-gray-500">Pilih percakapan di sebelah kiri</div>
+                <div className="text-center">
+                  <h2 className="text-xl font-semibold text-white messages-gradient-text-yellow">
+                    Pilih Percakapan
+                  </h2>
+                  <p className="text-gray-400 mt-1">Pilih percakapan dari daftar di sebelah kiri</p>
+                </div>
               )}
             </div>
 
             {/* Messages list */}
-            <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
+            <div 
+              ref={listRef} 
+              className="flex-1 min-h-0 overflow-y-auto messages-scrollable p-6 space-y-4"
+            >
               {activeUser && (
                 <>
                   {nextCursor && (
-                    <div className="flex justify-center mb-3">
+                    <div className="flex justify-center">
                       <button
                         onClick={() => {
                           if (!loadingOlderRef.current && nextCursor) {
@@ -480,80 +575,84 @@ const Messages = () => {
                             });
                           }
                         }}
-                        className="text-xs px-3 py-1 rounded-full border text-gray-600 hover:bg-gray-50"
+                        className="messages-gradient-btn px-4 py-2 rounded-lg text-sm font-semibold"
                       >
-                        Load older
+                        📜 Muat Pesan Lama
                       </button>
                     </div>
                   )}
 
-                  {messages.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-gray-400">
-                      Belum ada pesan. Mulai percakapan!
-                    </div>
+                  {messages.length === 0 && !loadingMessages ? (
+                    <EmptyMessagesState />
                   ) : (
-                    <div className="space-y-2">
+                    <>
                       {messages.map((m) => (
                         <div
                           key={m.message_id}
                           className={`flex ${isOwn(m) ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`max-w-[75%] rounded-2xl px-4 py-2 shadow-sm ${
-                              isOwn(m)
-                                ? 'bg-blue-600 text-white rounded-br-sm'
-                                : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                            className={`message-bubble ${
+                              isOwn(m) ? 'own' : 'other'
                             }`}
                           >
                             <div className="whitespace-pre-wrap break-words">
                               {m.content}
                             </div>
-                            <div
-                              className={`mt-1 text-[10px] ${
-                                isOwn(m) ? 'text-blue-100' : 'text-gray-500'
-                              }`}
-                            >
+                            <div className="message-time">
                               {formatTime(m.created_at)}
                             </div>
                           </div>
                         </div>
                       ))}
                       <div ref={bottomRef} />
-                    </div>
+                    </>
                   )}
                 </>
               )}
             </div>
 
             {/* Composer */}
-            <form onSubmit={sendMessage} className="p-4 border-t bg-white">
-              <div className="flex items-end space-x-2">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder={activeUser ? 'Tulis pesan...' : 'Pilih percakapan dahulu'}
-                  disabled={!activeUser || sending}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  rows={1}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={!activeUser || !text.trim() || sending}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {sending ? 'Mengirim...' : 'Kirim'}
-                </button>
-              </div>
-            </form>
-          </section>
+            {activeUser && (
+              <form onSubmit={sendMessage} className="p-6 border-t border-gray-700">
+                <div className="flex items-end gap-3 messages-input-container">
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Tulis pesan..."
+                    disabled={sending}
+                    className="flex-1 messages-input px-4 py-3 resize-none"
+                    rows={1}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!text.trim() || sending}
+                    className="messages-gradient-btn yellow px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {sending ? (
+                      <>
+                        <div className="messages-loading"></div>
+                        <span>Mengirim...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Kirim</span>
+                        <span>✈️</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

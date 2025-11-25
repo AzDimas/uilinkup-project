@@ -1,8 +1,8 @@
-// src/pages/GroupDetail.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import './GroupDetail.css';
 
 const groupTypeLabel = (t) => {
   const map = {
@@ -11,6 +11,15 @@ const groupTypeLabel = (t) => {
     interest: 'Interest / Topic Forum',
   };
   return map[t] || t || '-';
+};
+
+const groupTypeEmoji = (t) => {
+  const map = {
+    faculty: '🏛️',
+    program: '🎓',
+    interest: '💡',
+  };
+  return map[t] || '👥';
 };
 
 export default function GroupDetail() {
@@ -144,223 +153,417 @@ export default function GroupDetail() {
     }
   };
 
-  if (loadingGroup) return <div className="p-4">Loading group...</div>;
-  if (!group) return <div className="p-4">Group not found.</div>;
+  // Render floating particles
+  const renderParticles = () => {
+    const particles = [];
+    for (let i = 0; i < 8; i++) {
+      particles.push(
+        <div
+          key={i}
+          className="group-detail-particle"
+          style={{
+            width: `${Math.random() * 10 + 4}px`,
+            height: `${Math.random() * 10 + 4}px`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 6}s`,
+            background: i % 2 === 0 
+              ? `rgba(255, 193, 7, ${Math.random() * 0.2 + 0.1})`
+              : `rgba(33, 150, 243, ${Math.random() * 0.2 + 0.1})`
+          }}
+        />
+      );
+    }
+    return particles;
+  };
+
+  if (loadingGroup) {
+    return (
+      <div className="group-detail-container">
+        {renderParticles()}
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="group-detail-loading"></div>
+          <span className="ml-4 text-white text-lg">Memuat group...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div className="group-detail-container">
+        {renderParticles()}
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="group-detail-empty-state">
+            <div className="text-6xl mb-4 opacity-60">❌</div>
+            <h3 className="text-xl font-semibold text-white mb-2">Group Tidak Ditemukan</h3>
+            <p className="text-gray-400 mb-6">
+              Group yang Anda cari tidak ditemukan atau mungkin telah dihapus.
+            </p>
+            <Link
+              to="/groups"
+              className="group-detail-gradient-btn yellow px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 inline-block"
+            >
+              ← Kembali ke Groups
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const EmptyPostsState = () => (
+    <div className="group-detail-empty-state">
+      <div className="text-6xl mb-4 opacity-60">📝</div>
+      <h3 className="text-xl font-semibold text-white mb-2">Belum Ada Postingan</h3>
+      <p className="text-gray-400 mb-6">
+        {isMember 
+          ? 'Jadilah yang pertama membuat postingan di group ini!'
+          : 'Bergabunglah dengan group untuk melihat dan membuat postingan.'
+        }
+      </p>
+      {!isMember && (
+        <button
+          onClick={handleJoin}
+          className="group-detail-gradient-btn green px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
+        >
+          🚀 Bergabung Sekarang
+        </button>
+      )}
+    </div>
+  );
 
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-4">
-      {/* HEADER */}
-      <div className="bg-white border rounded-lg p-4 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">{group.name}</h1>
-          <div className="text-sm text-gray-600 mt-1 flex flex-wrap gap-2 items-center">
-            <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100">
-              {groupTypeLabel(group.group_type)}
-            </span>
-            {group.faculty && (
-              <span className="text-xs text-gray-700">
-                Faculty: {group.faculty}
-              </span>
-            )}
-            {group.group_type === 'interest' && group.interest_field && (
-              <span className="text-xs text-gray-700">
-                Topic: {group.interest_field}
-              </span>
-            )}
-          </div>
-          {group.description && (
-            <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">
-              {group.description}
-            </p>
-          )}
-          <div className="mt-3 text-xs text-gray-500">
-            Created by {group.creator_name} ({group.creator_email}) •{' '}
-            {group.created_at
-              ? new Date(group.created_at).toLocaleString()
-              : ''}
-          </div>
-        </div>
+    <div className="group-detail-container">
+      {/* Background Particles */}
+      {renderParticles()}
 
-        {/* ACTIONS */}
-        <div className="flex flex-col items-end gap-2">
-          <div className="text-xs text-gray-500">
-            Members: {group.member_count ?? 0}
-          </div>
-          <div className="flex gap-2 items-center">
-            {isMember ? (
-              <>
-                {myRole && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                    {myRole}
-                  </span>
-                )}
-                {myRole !== 'owner' && (
-                  <button
-                    onClick={handleLeave}
-                    disabled={joining}
-                    className="text-xs px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {joining ? 'Leaving...' : 'Exit Group'}
-                  </button>
-                )}
-              </>
-            ) : (
-              <button
-                onClick={handleJoin}
-                disabled={joining}
-                className="text-xs px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {joining ? 'Joining...' : 'Join Group'}
-              </button>
-            )}
-          </div>
-          <Link
-            to="/groups/feed"
-            className="text-xs text-blue-600 hover:underline"
-          >
-            ← Forum Feed
-          </Link>
-        </div>
-      </div>
+      {/* Floating Elements */}
+      <div className="absolute top-1/4 left-1/4 w-24 h-24 bg-yellow-500 rounded-full opacity-20 group-detail-floating-element"></div>
+      <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-blue-500 rounded-full opacity-20 group-detail-floating-element"></div>
+      <div className="absolute bottom-1/4 left-1/3 w-22 h-22 bg-blue-400 rounded-full opacity-20 group-detail-floating-element"></div>
 
-      {/* MEMBERS LINK */}
-      <div className="bg-white border rounded-lg p-3 text-xs flex items-center justify-between">
-        <span>
-          You can view all members of this group for networking and collaboration.
-        </span>
-        <Link
-          to={`/groups/${groupId}/members`}
-          className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50"
-        >
-          View Members
-        </Link>
-      </div>
-
-      {/* POSTS HEADER + SEARCH + NEW POST */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <div className="font-semibold text-sm">Posts in this Group</div>
-        <div className="flex flex-col md:flex-row gap-2 md:items-center">
-          <input
-            className="border rounded px-2 py-1 text-sm"
-            placeholder="Search posts (title/content)"
-            value={postSearch}
-            onChange={(e) => {
-              setPostSearch(e.target.value);
-              setPostPage(1);
-            }}
-          />
-          {isMember && (
-            <button
-              onClick={() => setCreatingPost((v) => !v)}
-              className="text-xs px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-6xl mx-auto">
+          {/* Header Navigation */}
+          <div className="flex items-center justify-between mb-6">
+            <Link
+              to="/groups"
+              className="group-detail-action-btn blue px-4 py-2 flex items-center gap-2"
             >
-              {creatingPost ? 'Cancel' : 'New Post'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* NEW POST FORM */}
-      {creatingPost && isMember && (
-        <div className="bg-white border rounded-lg p-4">
-          <form onSubmit={onSubmitPost} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">Title</label>
-              <input
-                name="title"
-                className="border rounded w-full px-2 py-1 text-sm"
-                value={postForm.title}
-                onChange={onChangePostForm}
-              />
+              <span>←</span>
+              <span>Kembali ke Groups</span>
+            </Link>
+            
+            <div className="flex items-center gap-3">
+              {isMember && (
+                <Link
+                  to={`/groups/${groupId}/members`}
+                  className="group-detail-action-btn green px-4 py-2 flex items-center gap-2"
+                >
+                  <span>👥</span>
+                  <span>Lihat Anggota</span>
+                </Link>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Content</label>
-              <textarea
-                name="content"
-                className="border rounded w-full px-2 py-1 text-sm"
-                rows={5}
-                value={postForm.content}
-                onChange={onChangePostForm}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">
-                Visibility: currently only <b>public</b> is used.
-              </span>
-              <button
-                type="submit"
-                className="px-4 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
-              >
-                Publish Post
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* POSTS LIST */}
-      <div className="bg-white border rounded-lg p-4">
-        {loadingPosts ? (
-          <div className="text-sm text-gray-500">Loading posts...</div>
-        ) : posts.length === 0 ? (
-          <div className="text-sm text-gray-500">
-            No posts yet. {isMember && 'Be the first to post!'}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {posts.map((p) => (
-              <Link
-                key={p.post_id}
-                to={`/groups/${groupId}/posts/${p.post_id}`}
-                className="block border rounded p-3 hover:bg-gray-50"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">{p.title}</h3>
-                  {p.is_pinned && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-                      Pinned
+
+          {/* Group Header */}
+          <div className="group-detail-section-card">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-start justify-between mb-4">
+                  <h1 className="text-3xl font-bold text-white mb-2">
+                    {group.name}
+                  </h1>
+                  <span className={`group-detail-type-badge ${group.group_type} flex items-center gap-2`}>
+                    <span>{groupTypeEmoji(group.group_type)}</span>
+                    <span>{groupTypeLabel(group.group_type)}</span>
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-gray-300">
+                  {group.faculty && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-yellow-400">🏫</span>
+                      <span>{group.faculty}</span>
+                    </div>
+                  )}
+                  
+                  {group.group_type === 'interest' && group.interest_field && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-purple-400">📌</span>
+                      <span>Topik: {group.interest_field}</span>
+                    </div>
+                  )}
+
+                  {group.description && (
+                    <div className="mt-4 p-4 bg-black bg-opacity-30 rounded-xl">
+                      <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                        {group.description}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 text-sm text-gray-400 pt-4">
+                    <span className="flex items-center gap-2">
+                      <span>👤</span>
+                      <span>Dibuat oleh: {group.creator_name}</span>
                     </span>
+                    <span className="flex items-center gap-2">
+                      <span>📅</span>
+                      <span>
+                        {group.created_at
+                          ? new Date(group.created_at).toLocaleDateString('id-ID', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })
+                          : ''}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group Actions */}
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="group-detail-stats-card">
+                    <div className="text-2xl font-bold text-white mb-1">
+                      {group.member_count ?? 0}
+                    </div>
+                    <div className="text-gray-400 text-sm">Anggota</div>
+                  </div>
+                  <div className="group-detail-stats-card">
+                    <div className="text-2xl font-bold text-white mb-1">
+                      {totalPosts}
+                    </div>
+                    <div className="text-gray-400 text-sm">Postingan</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {isMember ? (
+                    <>
+                      {myRole && (
+                        <div className={`group-detail-role-badge ${myRole} text-center`}>
+                          Role: {myRole}
+                        </div>
+                      )}
+                      {myRole !== 'owner' && (
+                        <button
+                          onClick={handleLeave}
+                          disabled={joining}
+                          className="group-detail-gradient-btn red px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 flex items-center gap-2 justify-center disabled:opacity-50"
+                        >
+                          {joining ? (
+                            <>
+                              <div className="group-detail-loading"></div>
+                              <span>Keluar...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🚪</span>
+                              <span>Keluar Group</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleJoin}
+                      disabled={joining}
+                      className="group-detail-gradient-btn green px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 flex items-center gap-2 justify-center disabled:opacity-50"
+                    >
+                      {joining ? (
+                        <>
+                          <div className="group-detail-loading"></div>
+                          <span>Bergabung...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🤝</span>
+                          <span>Bergabung Group</span>
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
-                <div className="mt-1 text-xs text-gray-600 line-clamp-2">
-                  {p.content}
-                </div>
-                <div className="mt-2 text-xs text-gray-400 flex justify-between">
-                  <span>
-                    By {p.author_name} • Replies: {p.reply_count ?? 0}
-                  </span>
-                  <span>
-                    {p.created_at
-                      ? new Date(p.created_at).toLocaleString()
-                      : ''}
-                  </span>
-                </div>
-              </Link>
-            ))}
+              </div>
+            </div>
           </div>
-        )}
 
-        {totalPostPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <button
-              disabled={postPage <= 1}
-              onClick={() => setPostPage((pp) => pp - 1)}
-              className="px-3 py-1 border rounded disabled:opacity-50 text-xs"
-            >
-              Prev
-            </button>
-            <span className="text-xs">
-              Page {postPage} / {totalPostPages}
-            </span>
-            <button
-              disabled={postPage >= totalPostPages}
-              onClick={() => setPostPage((pp) => pp + 1)}
-              className="px-3 py-1 border rounded disabled:opacity-50 text-xs"
-            >
-              Next
-            </button>
+          {/* Posts Section */}
+          <div className="group-detail-section-card">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+              <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
+                <span>📝</span>
+                Diskusi Group
+              </h2>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  className="group-detail-form-input px-4 py-3 rounded-xl focus:outline-none"
+                  placeholder="🔍 Cari postingan..."
+                  value={postSearch}
+                  onChange={(e) => {
+                    setPostSearch(e.target.value);
+                    setPostPage(1);
+                  }}
+                />
+                
+                {isMember && (
+                  <button
+                    onClick={() => setCreatingPost((v) => !v)}
+                    className="group-detail-gradient-btn yellow px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <span>{creatingPost ? '✕' : '✏️'}</span>
+                    <span>{creatingPost ? 'Batal' : 'Post Baru'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* New Post Form */}
+            {creatingPost && isMember && (
+              <div className="group-detail-card dark p-6 mb-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <span>✨</span>
+                  Buat Postingan Baru
+                </h3>
+                
+                <form onSubmit={onSubmitPost} className="space-y-4">
+                  <div>
+                    <label className="block text-white font-medium mb-2">
+                      Judul Postingan
+                    </label>
+                    <input
+                      name="title"
+                      className="group-detail-form-input w-full px-4 py-3 rounded-xl"
+                      placeholder="Masukkan judul yang menarik..."
+                      value={postForm.title}
+                      onChange={onChangePostForm}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white font-medium mb-2">
+                      Konten
+                    </label>
+                    <textarea
+                      name="content"
+                      className="group-detail-form-textarea w-full px-4 py-3 rounded-xl"
+                      rows={6}
+                      placeholder="Tulis isi postingan Anda di sini..."
+                      value={postForm.content}
+                      onChange={onChangePostForm}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-4">
+                    <span className="text-sm text-gray-400">
+                      Postingan akan visible untuk semua anggota group
+                    </span>
+                    <button
+                      type="submit"
+                      className="group-detail-gradient-btn blue px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                    >
+                      <span>🚀</span>
+                      <span>Publikasikan</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Posts List */}
+            {loadingPosts ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="group-detail-loading"></div>
+                <span className="ml-4 text-white text-lg">Memuat postingan...</span>
+              </div>
+            ) : posts.length === 0 ? (
+              <EmptyPostsState />
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <Link
+                    key={post.post_id}
+                    to={`/groups/${groupId}/posts/${post.post_id}`}
+                    className={`group-detail-post-card block hover:no-underline ${post.is_pinned ? 'pinned' : ''}`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-xl font-semibold text-white pr-4">
+                        {post.title}
+                      </h3>
+                      {post.is_pinned && (
+                        <span className="group-detail-badge yellow flex items-center gap-1">
+                          <span>📌</span>
+                          <span>Pinned</span>
+                        </span>
+                      )}
+                    </div>
+                    
+                    <p className="text-gray-300 mb-4 line-clamp-3 leading-relaxed">
+                      {post.content}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-sm text-gray-400 pt-3 border-t border-gray-600">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <span>👤</span>
+                          <span>{post.author_name}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span>💬</span>
+                          <span>{post.reply_count ?? 0} balasan</span>
+                        </span>
+                      </div>
+                      <span className="flex items-center gap-1">
+                        <span>📅</span>
+                        <span>
+                          {post.created_at
+                            ? new Date(post.created_at).toLocaleDateString('id-ID')
+                            : ''}
+                        </span>
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPostPages > 1 && (
+              <div className="group-detail-pagination">
+                <button
+                  disabled={postPage <= 1}
+                  onClick={() => setPostPage((pp) => pp - 1)}
+                  className="group-detail-pagination-btn flex items-center gap-2"
+                >
+                  <span>←</span>
+                  <span>Sebelumnya</span>
+                </button>
+                
+                <span className="group-detail-pagination-info">
+                  Halaman {postPage} dari {totalPostPages}
+                </span>
+                
+                <button
+                  disabled={postPage >= totalPostPages}
+                  onClick={() => setPostPage((pp) => pp + 1)}
+                  className="group-detail-pagination-btn flex items-center gap-2"
+                >
+                  <span>Berikutnya</span>
+                  <span>→</span>
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
